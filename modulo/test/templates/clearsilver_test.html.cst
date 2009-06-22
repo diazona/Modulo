@@ -1,0 +1,6 @@
+<html><body><p>Test Clearsilver template with some HTML and one var which should show the current year:</p>
+<p><?cs var:common.currentyear ?></p>
+<p>And now the custom value: <?cs var:page.data.foo ?> (that was it)</p></body></html>
+<?cs
+# kate: syntax Clearsilver
+?>
