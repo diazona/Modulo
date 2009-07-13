@@ -5,8 +5,8 @@ import neo_cs
 import neo_util
 import re
 import time
-from modulo.resources import Resource
-from modulo.resources.standard import FileResource
+from modulo.actions import Action
+from modulo.actions.standard import FileResource
 from modulo.templating import EmptyTemplateError
 from modulo.utilities import environ_next
 
@@ -16,6 +16,10 @@ class ClearsilverDataFile(FileResource):
             self.req.hdf = neo_util.HDF()
         self.req.hdf.readFile(self.filename)
 
+    @classmethod
+    def ext_request_filename(cls, req):
+        return cls.request_filename(req) + '.hdf'
+
 class ClearsilverTemplate(FileResource):
     def generate(self, rsp):
         if not hasattr(self.req, 'hdf'):
@@ -24,10 +28,14 @@ class ClearsilverTemplate(FileResource):
             self.req.cs = neo_cs.CS(self.req.hdf)
         self.req.cs.parseFile(self.filename)
 
+    @classmethod
+    def ext_request_filename(cls, req):
+        return cls.request_filename(req) + '.cst'
+
 obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
 
-class ClearsilverRendering(Resource):
+class ClearsilverRendering(Action):
     def generate(self, rsp):
         if not hasattr(self.req, 'hdf'):
             self.req.hdf = neo_util.HDF()

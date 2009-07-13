@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
-from modulo.resources import Resource
+from modulo.actions import Action
 from werkzeug.exceptions import Forbidden, HTTPException, Unauthorized
 
-class HTTPAuthenticationResource(Resource):
+#######################################################################
+# Authentication resources
+
+class HTTPAuthentication(Action):
     '''Generic base class for HTTP basic/digest authentication.'''
     def generate(self):
         if not self.authenticate(self.req.authorization):
@@ -19,7 +22,7 @@ class HTTPAuthenticationResource(Resource):
         and digest, available in auth.username and auth.response.'''
         return False
 
-class BasicAuthenticationResource(HTTPAuthenticationResource):
+class BasicAuthentication(HTTPAuthentication):
     '''Handles HTTP basic authentication.
 
     This is meant to be subclassed.'''
@@ -28,7 +31,7 @@ class BasicAuthenticationResource(HTTPAuthenticationResource):
         auth = req.authorization
         return auth is not None and auth.type == 'basic'
 
-class DigestAuthenticationResource(HTTPAuthenticationResource):
+class DigestAuthentication(HTTPAuthentication):
     '''Handles HTTP digest authentication.
 
     This is meant to be subclassed.'''
@@ -37,18 +40,20 @@ class DigestAuthenticationResource(HTTPAuthenticationResource):
         auth = req.authorization
         return auth is not None and auth.type == 'digest'
 
-class ForbidResource(Resource):
-    '''A resource which raises a 403 error if not authorized.'''
+#######################################################################
+# Authorization actions
+
+class ForbiddenAuthorization(Action):
+    '''An action which raises a 403 error if not authorized.'''
     def generate(self):
-        if not self.req.root_resource.authorized():
+        if not self.req.root_action.authorized():
             raise Forbidden()
 
-class LoginResource(Resource):
+class LoginAuthorization(Action):
     '''A resource which redirects to a login page if not authorized.'''
     def generate(self):
         if not self.req.root_resource.authorized():
             raise LoginRedirect(self.login_url)
-
     login_url = None
 
 class LoginRedirect(HTTPException):

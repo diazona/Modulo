@@ -8,28 +8,28 @@ if basedir not in sys.path:
     sys.path.append(basedir)
 
 from modulo import *
-from modulo.resources.filters import *
-from modulo.resources.standard import *
+from modulo.actions.filters import *
+from modulo.actions.standard import *
 from modulo.templating.clearsilver import *
-from modulo.test.hello import HelloWorldResource
+from modulo.test.hello import HelloWorldAction
 from werkzeug import script
 from werkzeug.routing import Map, Rule
 
 def make_app():
     resource_tree = all_of(
-        DateHeader,
-        ContentTypeHeader,
-        WerkzeugMapFilter.derive(wzmap = Map([
-            Rule('/hello', endpoint=HelloWorldResource),
-            Rule('/hello<anything>', endpoint=HelloWorldResource)
+        DateAction,
+        ContentTypeAction,
+        WerkzeugMapFilter(routing_map = Map([
+            Rule('/hello', endpoint=HelloWorldAction),
+            Rule('/hello<anything>', endpoint=HelloWorldAction)
         ])) | all_of(
             any_of(
                 all_of(
-                    ClearsilverTemplate.derive(filename=classmethod(lambda cls, req: cls.request_filename(req) + '.cst')),
-                    ClearsilverDataFile.derive(filename=classmethod(lambda cls, req: cls.request_filename(req) + '.hdf'))
+                    ClearsilverTemplate(filename=ClearsilverTemplate.ext_request_filename),
+                    ClearsilverDataFile(filename=ClearsilverDataFile.ext_request_filename)
                 ),
-                ClearsilverTemplate.derive(filename=classmethod(lambda cls, req: cls.request_filename(req) + '.cst')),
-                ClearsilverDataFile.derive(filename=classmethod(lambda cls, req: cls.request_filename(req) + '.hdf'))
+                ClearsilverTemplate(filename=ClearsilverTemplate.ext_request_filename),
+                ClearsilverDataFile(filename=ClearsilverDataFile.ext_request_filename)
             ),
             ClearsilverRendering
         ) | FileResource

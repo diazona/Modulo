@@ -12,21 +12,21 @@ from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
 
 __all__ = ['ModuloApplication']
 
-def ModuloApplication(response_tree, error_tree=None):
+def ModuloApplication(action_tree, error_tree=None):
     @Request.application
     def application(self, request):
         def run_everything(tree):
-            root_resource = tree(request)
-            if root_resource is None:
+            handler = tree(request)
+            if handler is None:
                 raise NotFound()
             response = Response()
-            request.root_resource = root_resource
-            root_resource.generate(response)
+            request.handler = handler
+            handler.generate(response)
             return response
 
         try:
             # First try to generate a normal response
-            return run_everything(response_tree)
+            return run_everything(action_tree)
         except Exception, e:
             # If that fails, generate an error response
             if error_tree is None:

@@ -1,14 +1,12 @@
 #!/usr/bin/python
 
 import weakref
-from modulo.resources import HashKey, Resource
+from modulo.actions import Action as Filter, HashKey
 from modulo.utilities import environ_next
 from werkzeug.exceptions import NotFound
 
-'''This module contains filter resources, which play no part in generating the response
-except to limit which other resources respond to the request.'''
-
-Filter = Resource
+'''This module contains filter actions, which play no part in generating the response
+except to limit which other actions respond to the request.'''
 
 class URIFilter(Filter):
     '''A handler which only accepts requests that match a URI regular expression.
@@ -25,6 +23,10 @@ class URIFilter(Filter):
             cls.regex = re.compile(cls.regex)
         return cls.regex.match(string)
 
+    @classmethod
+    def derive(cls, regex):
+        return super(URIFilter, cls).derive(regex=regex)
+
     def transform(self):
         match = self.__match(self.req.uri)
         if match.lastindex:
@@ -33,8 +35,6 @@ class URIFilter(Filter):
             n = environ_next(self.req.environ, 'modulo.urlparam.%d')
             for i, v in enumerate(match.groups()):
                 req.environ['modulo.urlparam.%d.%d' % (n, i)] = v
-
-    regex = r'.*'
 
 class URIPrefixFilter(Filter):
     '''A handler which only accepts requests with URIs starting with a string.
@@ -51,7 +51,9 @@ class URIPrefixFilter(Filter):
         uri_suffix = req.uri[len(cls.prefix):]
         return len(uri_suffix) == 0 or uri_suffix.startswith('/')
 
-    prefix = ''
+    @classmethod
+    def derive(cls, prefix):
+        return super(URIPrefixFilter, cls).derive(prefix=prefix)
 
 class URISuffixFilter(Filter):
     '''A handler which only accepts requests with URIs ending with a string.
@@ -68,7 +70,9 @@ class URISuffixFilter(Filter):
         uri_prefix = req.uri[:len(cls.suffix)]
         return len(uri_prefix) == 0 or uri_suffix.endswith('/')
 
-    suffix = ''
+    @classmethod
+    def derive(cls, suffix):
+        return super(URIPrefixFilter, cls).derive(suffix=suffix)
 
 class URIPrefixConsumer(Filter):
     '''A handler which only accepts requests with URIs starting with a string.
@@ -93,15 +97,18 @@ class URIPrefixConsumer(Filter):
         else:
             return False
 
-    prefix = ''
+    @classmethod
+    def derive(cls, prefix):
+        return super(URIPrefixFilter, cls).derive(prefix=prefix)
 
 class WerkzeugMapFilter(Filter):
-    '''A filter which acts like a Werkzeug routing map. The class expects to see
-    an instance of werkzeug.routing.Map in the class variable wzmap (by default
-    this is None, so you must create a subclass which has wzmap set to a meaningful
-    value). The endpoints must be *resources*, not strings as Werkzeug recommends.
-    This class works somewhat like an AnyResource where each subnode is a resource
-    chain with a URIFilter. (The URIFilters correspond to Rules)
+    '''A filter which acts like a Werkzeug routing map.
+
+    The class expects to see an instance of werkzeug.routing.Map in the class
+    variable routing_map (i.e. passed to the constructor). The Map instance can
+    have as its endpoints either Actions or strings (or a mixture of both). If
+    any of the endpoints are strings, you need to provide an additional parameter,
+    action_map, which is a dict mapping strings to Actions.
 
     Keep in mind that Werkzeug's routing algorithm always identifies exactly one
     endpoint (in this case, one resource), based on the URL alone. This is something
@@ -109,16 +116,15 @@ class WerkzeugMapFilter(Filter):
     if the resource associated with the first rule doesn't handle the request, the
     WerkzeugMapFilter as a whole will reject the request. It won't backtrack and try
     the resources associated with the other matching rules. If this is a problem, use
-    AnyResource with URIFilters, something like
+    AnyAction with URIFilters, something like
         any_of(
-            URIFilter.derive('/') & SomeResource,
-            URIFilter.derive('/whatever') & OtherResource,
-            URIFilter.derive('/foo') & BarResource
+            URIFilter('/') & SomeAction,
+            URIFilter('/whatever') & OtherAction,
+            URIFilter('/foo') & BarAction
         )
     '''
-    wzmap = None
 
-    # Every handler class that gets added to the dictionary (in handles()) should eventually
+    # Every action class that gets added to the dictionary (in handles()) should eventually
     # be removed (in __call__()), but in case there's some leak by which that doesn't occur,
     # we don't want the dictionary to grow large. So we use weak references to the requests,
     # that way at the very latest, each dict entry will be deleted when the request is
@@ -131,7 +137,7 @@ class WerkzeugMapFilter(Filter):
         if hk in cls.handler_cls_cache:
             return True
         try:
-            endpoint, arguments = cls.wzmap.bind_to_environ(req).match(req.path, req.method)
+            endpoint, arguments = cls.routing_map.bind_to_environ(req).match(req.path, req.method)
         except NotFound: # don't let this exception propagate because another resource might handle the request
             return False
         else:
@@ -142,6 +148,10 @@ class WerkzeugMapFilter(Filter):
 
     def __new__(cls, req):
         if cls.handles(req):
-            return cls.handler_cls_cache.pop(HashKey(req))(req)
+            return cls.handler_cls_cache.pop(HashKey(req)).handle(req)
         else:
             return None
+
+    @classmethod
+    def derive(cls, routing_map, action_map=None):
+        return super(WerkzeugMapFilter, cls).derive(routing_map=routing_map, action_map=action_map)

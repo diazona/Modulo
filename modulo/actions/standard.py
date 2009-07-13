@@ -1,25 +1,25 @@
 #!/usr/bin/python
 
-'''Standard resources that are useful for the operation of a web server.'''
+'''Standard action that are useful for the operation of a web server.'''
 
 import hashlib
 import mimetypes
 import os.path
 import time
 from datetime import datetime
-from modulo.resources import Resource
+from modulo.actions import Action
 from os.path import isfile
 from stat import ST_MTIME
 from werkzeug.utils import http_date, wrap_file
 
-class FileResource(Resource):
-    '''A base class for a resource corresponding to a specific file.
+class FileResource(Action):
+    '''A base class for an action that reads the contents of a file.
 
     There are a couple of things that subclasses need to override. First, of
     course, the filename() class method, which returns the name of the file.
     Note that this method is actually run once when an instance of FileResource
     is constructed, and the return value is cached, so the filename computed
-    for a given request can't change mid-processing. By default, filename()
+    for a given request doesn't change mid-processing. By default, filename()
     joins the document root (or, failing that, the current directory) to
     the URL path, the same way a static file server does.
 
@@ -61,9 +61,8 @@ class FileResource(Resource):
     def generate(self, rsp):
         rsp.response = wrap_file(self.req.environ, open(self.filename))
 
-class DynamicResource(Resource):
-    '''A handler for "true dynamic" resources which should never be locally cached
-    by clients.'''
+class NoCacheAction(Action):
+    '''An action which sets the headers to disable caching by clients.'''
     def generate(self, rsp):
         '''Sets this resource to be uncached.'''
         # smart HTTP/1.1 compatibility
@@ -73,15 +72,15 @@ class DynamicResource(Resource):
         # HTTP/1.0 compatibility
         rsp.headers['Pragma'] = 'no-cache'
 
-class DateHeader(Resource):
-    '''A handler which assigns the Date header to the request.
+class DateAction(Action):
+    '''An action which assigns the Date header to the response.
 
     This should probably be chained at the beginning of the handler tree, as
     it's required by HTTP/1.1 unless the server doesn't have a working clock.'''
     def generate(self, rsp):
         rsp.date = datetime.utcnow()
 
-class ContentTypeHeader(Resource):
+class ContentTypeAction(Action):
     '''A handler which guesses and/or assigns a value for the Content-Type header.
 
     The guess is performed by the content_type class method. By default it uses
@@ -92,7 +91,7 @@ class ContentTypeHeader(Resource):
         return mimetypes.guess_type(req.url)
 
     def __init__(self, req):
-        super(ContentTypeHeader, self).__init__(req)
+        super(ContentTypeAction, self).__init__(req)
         self.content_type, self.content_encoding = self.content_type(req) # slight optimization
 
     def generate(self, rsp):
@@ -101,9 +100,10 @@ class ContentTypeHeader(Resource):
         if self.content_encoding:
             rsp.content_encoding = self.content_encoding
 
-class CacheControl(Resource):
-    '''A handler which checks whether it's appropriate to raise a NotModified exception.'''
+class CacheControl(Action):
+    '''An Action which checks whether it's appropriate to raise a NotModified exception.'''
     def generate(self, rsp):
+        # checks etag
         rsp.make_conditional(self.req)
         #mtime = self.req.root_resource.last_modified()
         #etag = self.req.root_resource.resource_id()
@@ -136,14 +136,14 @@ class CacheControl(Resource):
         #self.req.response_headers['Last-Modified'] = http_date(mtime)
         #self.req.response_headers['ETag'] = '"%s"' % self.req.resource_root.resource_id()
 
-class ContentLengthHeader(Resource):
-    '''A resource to set the Content-Length header.
+class ContentLengthAction(Action):
+    '''An Action to set the Content-Length header.
 
     By default, this just computes the length of the 'data' attribute of
     the response, though you can override this by setting the content_length
     attribute (of an instance or subclass) to a particular number.
 
-    If you don't set the content_length attribute, this resource should *only*
+    If you don't set the content_length class property, this resource should *only*
     be chained after a resource which sets rsp.data to the content to be sent
     back to the client, otherwise the Content-Length header will be set to an
     incorrect value, probably 0. If your method of delivery is to set
@@ -158,8 +158,12 @@ class ContentLengthHeader(Resource):
         else:
             rsp.content_length = len(rsp.data)
 
-class ContentMD5Header(Resource):
-    '''A resource to set the Content-MD5 header.
+    @classmethod
+    def derive(cls, content_length):
+        super(ContentLengthAction, cls).derive(content_length=content_length)
+
+class ContentMD5Action(Action):
+    '''An action to set the Content-MD5 header.
 
     By default, this just computes the hash of the 'data' attribute of
     the response, though you can override this by setting the content_md5
@@ -178,13 +182,6 @@ class ContentMD5Header(Resource):
         else:
             rsp.content_md5 = hashlib.md5(rsp.data).hexdigest()
 
-# TODO: move this to a module somewhere
-cache = None
-
-class FullPageCache(Resource):
-    '''A resource that pulls a full page from the cache, if it exists.'''
-    def generate(self, rsp):
-        c = cache.get('full_page' + self.req.root_resource.resource_id())
-        if c:
-            rsp.data = c
-            return True
+    @classmethod
+    def derive(cls, content_md5):
+        super(ContentMD5Action, cls).derive(content_md5=content_md5)
