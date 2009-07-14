@@ -103,7 +103,7 @@ class DirectoryResource(Action):
         contents = dircache.listdir(self.dirname)[:]
         dircache.annotate(self.dirname, contents)
         rsp.data = Template('<html><head><title>Listing of ${dirname}</title></head>'
-                            '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li>${d}</li><% endfor %></ul></body></html>'
+                            '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li><a href="${d}">${d}</a></li><% endfor %></ul></body></html>'
                             ).render(dirname=self.dirname, contents=contents)
 
 class NoCacheAction(Action):
