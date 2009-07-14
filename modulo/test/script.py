@@ -34,7 +34,7 @@ def make_app():
             ),
             ClearsilverRendering
         ) | all_of(
-            URISuffixFilter('.tmpl'),
+            URIFilter(r'/templates/.*\.tmpl'),
             MiniTemplate
         ) | FileResource | DirectoryResource
     )

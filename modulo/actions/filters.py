@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import re
 import weakref
 from modulo.actions import Action as Filter, HashKey
 from modulo.utilities import environ_next
@@ -21,7 +22,7 @@ class URIFilter(Filter):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        return bool(cls.__match(req.uri))
+        return bool(cls.__match(uri_path(req.environ)))
 
     @classmethod
     def __match(cls, string):
@@ -34,13 +35,14 @@ class URIFilter(Filter):
         return super(URIFilter, cls).derive(regex=regex)
 
     def transform(self):
-        match = self.__match(self.req.uri)
+        match = self.__match(uri_path(self.req.environ))
         if match.lastindex:
             for k, v in match.groupdict().iteritems():
                 self.req.environ['modulo.urlparam.' + k] = v
             n = environ_next(self.req.environ, 'modulo.urlparam.%d')
             for i, v in enumerate(match.groups()):
                 req.environ['modulo.urlparam.%d.%d' % (n, i)] = v
+        return self.req
 
 class URIPrefixFilter(Filter):
     '''A handler which only accepts requests with URIs starting with a string.
