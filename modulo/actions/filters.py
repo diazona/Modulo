@@ -8,6 +8,12 @@ from werkzeug.exceptions import NotFound
 '''This module contains filter actions, which play no part in generating the response
 except to limit which other actions respond to the request.'''
 
+def uri_path(environ):
+    path = environ.get('REQUEST_URI', None)
+    if not path:
+        path = environ.get('SCRIPT_NAME', '').rstrip('/') + '/' + environ.get('PATH_INFO', '').lstrip('/')
+    return path
+
 class URIFilter(Filter):
     '''A handler which only accepts requests that match a URI regular expression.
 
@@ -46,10 +52,13 @@ class URIPrefixFilter(Filter):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        if not req.uri.startswith(cls.prefix):
+        path = uri_path(req.environ)
+        if not path.startswith(cls.prefix):
             return False
-        uri_suffix = req.uri[len(cls.prefix):]
-        return len(uri_suffix) == 0 or uri_suffix.startswith('/')
+        if cls.prefix.endswith('/'):
+            return True
+        url_prefix = path[len(cls.prefix):]
+        return len(url_prefix) == 0 or url_prefix.startswith('/')
 
     @classmethod
     def derive(cls, prefix):
@@ -65,14 +74,17 @@ class URISuffixFilter(Filter):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        if not req.uri.endswith(cls.suffix):
+        path = uri_path(req.environ)
+        if not path.endswith(cls.suffix):
             return False
-        uri_prefix = req.uri[:len(cls.suffix)]
-        return len(uri_prefix) == 0 or uri_suffix.endswith('/')
+        if cls.suffix.startswith('.') or cls.suffix.startswith('/'):
+            return True
+        url_suffix = path[:-len(cls.suffix)]
+        return len(url_suffix) == 0 or url_suffix.endswith('/')
 
     @classmethod
     def derive(cls, suffix):
-        return super(URIPrefixFilter, cls).derive(suffix=suffix)
+        return super(URISuffixFilter, cls).derive(suffix=suffix)
 
 class URIPrefixConsumer(Filter):
     '''A handler which only accepts requests with URIs starting with a string.

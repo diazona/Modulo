@@ -2,14 +2,16 @@
 
 '''Standard action that are useful for the operation of a web server.'''
 
+import dircache
 import hashlib
 import mimetypes
 import os.path
 import time
 from datetime import datetime
 from modulo.actions import Action
-from os.path import isfile
+from os.path import isdir, isfile
 from stat import ST_MTIME
+from werkzeug import Template
 from werkzeug.utils import http_date, wrap_file
 
 class FileResource(Action):
@@ -61,6 +63,49 @@ class FileResource(Action):
     def generate(self, rsp):
         rsp.response = wrap_file(self.req.environ, open(self.filename))
 
+class DirectoryResource(Action):
+    '''A base class for an action that returns a directory listing.
+
+    As with FileResource, there are two things for subclasses to override.
+    There's the dirname() class method, which returns the name of the directory.
+    Like FileResource, the value is cached when an instance is constructed.
+
+    The other thing to override is generate() which specifies what to do with
+    the directory listing. The default implementation just sets the data attribute
+    of the response to an HTML page listing the directory contents. You might want
+    to override this to assign the file names and properties to the template data
+    structure, and provide a template (in your system of choice) to display the
+    directory contents.'''
+    @classmethod
+    def dirname(cls, req):
+        return cls.request_dirname(req)
+
+    @staticmethod
+    def request_dirname(req):
+        if 'DOCUMENT_ROOT' in req.environ:
+            docroot = req.environ['DOCUMENT_ROOT']
+        else:
+            docroot = os.getcwd()
+        return os.path.join(docroot, req.path.lstrip('/'))
+
+    @classmethod
+    def handles(cls, req):
+        return isdir(cls.dirname(req))
+
+    def __init__(self, req):
+        super(DirectoryResource, self).__init__(req)
+        self.dirname = self.dirname(req) # slight optimization
+
+    def last_modified(self):
+        return datetime.utcfromtimestamp(os.stat(self.dirname)[ST_MTIME])
+
+    def generate(self, rsp):
+        contents = dircache.listdir(self.dirname)[:]
+        dircache.annotate(self.dirname, contents)
+        rsp.data = Template('<html><head><title>Listing of ${dirname}</title></head>'
+                            '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li>${d}</li><% endfor %></ul></body></html>'
+                            ).render(dirname=self.dirname, contents=contents)
+
 class NoCacheAction(Action):
     '''An action which sets the headers to disable caching by clients.'''
     def generate(self, rsp):
@@ -89,6 +134,10 @@ class ContentTypeAction(Action):
     @classmethod
     def content_type(cls, req):
         return mimetypes.guess_type(req.url)
+
+    @classmethod
+    def derive(cls, content_type, content_encoding=''):
+        return super(ContentTypeAction, cls).derive(content_type=lambda s, r: (content_type, content_encoding))
 
     def __init__(self, req):
         super(ContentTypeAction, self).__init__(req)

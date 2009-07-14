@@ -42,7 +42,7 @@ class ClearsilverRendering(Action):
         hdf = self.req.hdf
         try:
             cs = self.req.cs
-        except KeyError:
+        except AttributeError:
             raise EmptyTemplateError, 'No Clearsilver template objects defined'
         # emulate the Clearsilver CGI kit
         load_hdf_cgi_vars(self.req)

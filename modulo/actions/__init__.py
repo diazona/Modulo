@@ -49,7 +49,7 @@ def all_of(*cls):
     for n in cls:
         if not issubclass(n, Action):
             return NotImplemented
-        if isinstance(n, AllActions):
+        if issubclass(n, AllActions):
             handler_classes.extend(n.handler_classes)
         else:
             handler_classes.append(n)
@@ -76,7 +76,7 @@ def any_of(*cls):
     for n in cls:
         if not issubclass(n, Action):
             return NotImplemented
-        if isinstance(n, AnyAction):
+        if issubclass(n, AnyAction):
             handler_classes.extend(n.handler_classes)
         else:
             handler_classes.append(n)
@@ -99,7 +99,7 @@ def opt(cls):
     elif cls.__name__.startswith('OptAction'):
         return cls
     else:
-        return ActionMetaclass('OptAction_%s' % hash_iterable([cls]), (OptAction,), {'handler_class': cls})
+        return type('OptAction_%s' % hash_iterable([cls]), (OptAction,), {'handler_class': cls})
 
 class ActionMetaclass(type):
     '''A metaclass that grants composition methods to the Action class itself.'''
@@ -109,10 +109,11 @@ class ActionMetaclass(type):
 
     # Python voodoo ;-) make Action() call Action.derive() and Action.handle() call Action()
     def __call__(self, *args, **kwargs):
-        return self.derive(*args, **kwargs)
+        d = self.derive(*args, **kwargs)
+        assert d is not None
+        return d
 
     def handle(self, req):
-        req.loggers['modulo'].debug('in %s.handle(%s)', self, req)
         return super(ActionMetaclass, self).__call__(req)
 
 # more Python voodoo! Use a descriptor so that the method will be either a static method
@@ -219,7 +220,7 @@ class Action(object):
 
     def last_modified(self):
         '''Return the last modification time of the current action as a datetime object.'''
-        return datetime.datetime()
+        return 0
 
     def action_id(self):
         '''Return a deterministic ID for the current action, used in generating the
@@ -262,22 +263,10 @@ class HashKey(object):
         return self.hashcode
 
 class AllActions(Action):
-    handler_classes = []
-    handler_cache = weakref.WeakKeyDictionary()
-
     @classmethod
     def handles(cls, req):
-        if HashKey(req) in cls.handler_cache:
-            return True
-        # short way
-        #return all(hc.handles(req) for hc in cls.handler_classes)
-        # verbose way
-        for hc in cls.handler_classes:
-            if not hc.handles(req):
-                cls.debug(req, '%s rejecting request %s (returning)' % (hc, req))
-                return False
-            else:
-                cls.debug(req, '%s accepting request %s' % (hc, req))
+        # We override handles() so that we can use super(...).__new__(...)
+        # in the constructor, instead of having to resort to object.__new__(...)
         return True
 
     def __new__(cls, req):
@@ -285,25 +274,25 @@ class AllActions(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                pass
+                cls.debug(req, '%s rejecting request %s (returning)' % (hc, req))
+                return None
             elif isinstance(h, AllActions):
                 handlers.extend(h.handlers)
                 del h
             else:
+                cls.debug(req, '%s accepting request %s' % (hc, req))
                 handlers.append(h)
                 req = h.transform()
-                assert isinstance(req, BaseRequest)
+                if not isinstance(req, BaseRequest):
+                    raise TypeError('request not instance of BaseRequest (got type %s)' % type(req))
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
             return None
         else:
-            cls.handler_cache[HashKey(req)] = handlers
-            return super(AllActions, cls).__new__(cls, req)
-
-    def __init__(self, req):
-        super(AllActions, self).__init__(req)
-        self.handlers = self.handler_cache.pop(HashKey(req))
+            instance = super(AllActions, cls).__new__(cls, req)
+            instance.handlers = handlers
+            return instance
 
     def __del__(self):
         del self.handlers
@@ -328,39 +317,24 @@ class AllActions(Action):
                 return True
 
 class AnyAction(Action):
-    handler_classes = []
-
-    # Every handler class that gets added to the dictionary (in handles()) should eventually
-    # be removed (in __new__()), but in case there's some leak by which that doesn't occur,
-    # we don't want the dictionary to grow large. So we use weak references to the requests,
-    # that way at the very latest, each dict entry will be deleted when the request is
-    # finished processing.
-    handler_cls_cache = weakref.WeakKeyDictionary()
-
-    @classmethod
-    def handles(cls, req):
-        hk = HashKey(req)
-        if hk in cls.handler_cls_cache:
-            return True
-        for hc in cls.handler_classes:
-            if hc.handles(req):
-                cls.debug(req, '%s accepting request %s (returning)' % (hc, req))
-                cls.handler_cls_cache[hk] = hc
-                return True
-            else:
-                cls.debug(req, '%s rejecting request %s' % (hc, req))
-        return False
-
     def __new__(cls, req):
-        if cls.handles(req):
-            return (cls.handler_cls_cache.pop(HashKey(req))).handle(req)
-        else:
-            return None
+        for hc in cls.handler_classes:
+            h = hc.handle(req)
+            if h is None:
+                cls.debug(req, '%s rejecting request %s' % (hc, req))
+            else:
+                cls.debug(req, '%s accepting request %s (returning)' % (hc, req))
+                return h
+        return None
+        # Note that we never call super(...).__new__(...) here. So there is no
+        # need to override handles().
 
 class OptAction(Action):
-    @classmethod
-    def handles(cls, req):
-        return True
-
     def __new__(cls, req):
-        return cls.handler_class(req) or None
+        h = cls.handler_class.handle(req)
+        if h is None:
+            cls.debug(req, '%s rejecting request %s (returning)' % (hc, req))
+            return cls.handle(req)
+        else:
+            cls.debug(req, '%s accepting request %s (returning)' % (hc, req))
+            return h

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from werkzeug.actions import FileResource
+from modulo.actions.standard import FileResource
 from werkzeug.templates import Template
 
 class MiniTemplate(FileResource):
