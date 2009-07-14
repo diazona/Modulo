@@ -42,3 +42,9 @@ def environ_next(environ, keyfmt, value=True):
         if keyfmt % n not in req.environ:
             req.environ[keyfmt % n] = value
             return n
+
+def uri_path(environ):
+    path = environ.get('REQUEST_URI', None)
+    if not path:
+        path = environ.get('SCRIPT_NAME', '').rstrip('/') + '/' + environ.get('PATH_INFO', '').lstrip('/')
+    return path

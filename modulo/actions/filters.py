@@ -3,17 +3,11 @@
 import re
 import weakref
 from modulo.actions import Action as Filter, HashKey
-from modulo.utilities import environ_next
+from modulo.utilities import environ_next, uri_path
 from werkzeug.exceptions import NotFound
 
 '''This module contains filter actions, which play no part in generating the response
 except to limit which other actions respond to the request.'''
-
-def uri_path(environ):
-    path = environ.get('REQUEST_URI', None)
-    if not path:
-        path = environ.get('SCRIPT_NAME', '').rstrip('/') + '/' + environ.get('PATH_INFO', '').lstrip('/')
-    return path
 
 class URIFilter(Filter):
     '''A handler which only accepts requests that match a URI regular expression.
