@@ -2,39 +2,22 @@
 
 '''Basic components of Modulo.'''
 
-from collections import defaultdict
-from logging import Logger, StreamHandler
 from modulo.actions import all_of, any_of, opt
-from werkzeug import Request, Response
+from modulo.utilities import check_params
+from modulo.wrappers import Request, Response
 from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
 
 __all__ = ['WSGIModuloApp', 'all_of', 'any_of', 'opt']
 
-class WSGILogger(Logger):
-    def __init__(self, name, req): # DO NOT call logging.setLoggerClass() with this
-        Logger.__init__(self, name)
-        self.addHandler(req.logger_handler)
-
-class LoggerDict(defaultdict):
-    def __init__(self, req):
-        super(LoggerDict, self).__init__(lambda x: None)
-        self.req = req
-
-    def __missing__(self, key):
-        return WSGILogger(key, self.req)
-
 def run_everything(tree, request):
-    if not hasattr(request, 'logger_handler'):
-        request.logger_handler = StreamHandler(request.environ['wsgi.errors'])
-    if not hasattr(request, 'loggers'):
-        request.loggers = LoggerDict(request)
     handler = tree.handle(request)
     if handler is None:
         raise NotFound()
-    request.loggers['modulo'].debug(str(handler))
+    request.loggers['modulo'].debug('\n'+str(handler))
     response = Response()
     request.handler = handler
-    handler.generate(response)
+    args, kwargs = check_params(params = handler.parameters())
+    handler.generate(response, *args, **kwargs)
     return response
 
 def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):

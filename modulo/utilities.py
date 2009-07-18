@@ -48,3 +48,40 @@ def uri_path(environ):
     if not path:
         path = environ.get('SCRIPT_NAME', '').rstrip('/') + '/' + environ.get('PATH_INFO', '').lstrip('/')
     return path
+
+dummy = object()
+
+class wrap_dict(dict):
+    def __init__(self, parent):
+        self.__parent = parent
+
+    def __getitem__(self, key):
+        try:
+            val = super(wrap_dict, self).__getitem__(key)
+        except KeyError:
+            return self.__parent[key]
+        else:
+            if val is dummy:
+                raise KeyError(key)
+            return val
+
+    def __delitem__(self, key):
+        try:
+            super(wrap_dict, self).__delitem__(key)
+        except KeyError:
+            self[key] = dummy
+
+    def __del__(self):
+        del self.__parent
+
+def check_params(params):
+    if params is None:
+        return [], {}
+    else:
+        args, kwargs = params
+        if not isinstance(args, list):
+            args = [args]
+        if not isinstance(kwargs, dict):
+            args.append(kwargs)
+            kwargs = {}
+        return args, kwargs

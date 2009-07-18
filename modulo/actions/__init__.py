@@ -23,9 +23,12 @@ import re
 import time
 import urlparse
 import weakref
-from modulo.utilities import hash_iterable
+from copy import copy
+from modulo.utilities import check_params, hash_iterable, wrap_dict
+from modulo.wrappers import Request
 from os.path import dirname, isfile, join, splitext
 from stat import ST_MTIME
+from werkzeug import validate_arguments
 from werkzeug import BaseRequest
 
 __all__ = ['all_of', 'any_of', 'opt', 'Action']
@@ -109,12 +112,22 @@ class ActionMetaclass(type):
 
     # Python voodoo ;-) make Action() call Action.derive() and Action.handle() call Action()
     def __call__(self, *args, **kwargs):
+        # create a subclass
         d = self.derive(*args, **kwargs)
         assert d is not None
         return d
 
+    def __str__(self):
+        if len(self.__name__) > 33 and self.__name__[-33] == '_':
+            # it's a derived subclass
+            return '%-22s  [%s]' % (self.__name__[:-33], self.__name__[-32:])
+        else:
+            return '%-22s   <standard>' % (self.__name__)
+
     def handle(self, req):
-        return super(ActionMetaclass, self).__call__(req)
+        # construct a new Action
+        h = super(ActionMetaclass, self).__call__(req)
+        return h
 
 # more Python voodoo! Use a descriptor so that the method will be either a static method
 # or instance method depending on whether we call it from the class or an instance
@@ -203,16 +216,17 @@ class Action(object):
     def __init__(self, req):
         '''Initializes the handler.'''
         super(Action, self).__init__()
+        self.transform(req.environ)
         self.req = req
 
-    def transform(self):
+    def transform(self, environ):
         '''An opportunity for this Action to transform the request. The return
-        value from this method should be a Werkzeug Request, which will be used in
-        place of the original request object when asking actions to handle the
-        request. This can be used to implement things like consuming path components.
+        value from this method should be a WSGI environment (dict), which will be
+        used in place of the original environment when asking further actions to handle
+        the request. This can be used to implement things like consuming path components.
 
-        By default this method just returns the argument req without any modification.'''
-        return self.req
+        By default this method just returns the argument without any modification.'''
+        return environ
 
     def authorized(self):
         '''Return True if the current request is authorized to access this action, False if not'''
@@ -229,7 +243,12 @@ class Action(object):
         provide a different ID for each).'''
         return 0
 
-    def generate(self, rsp):
+    def parameters(self):
+        '''Return any parameters that should be provided to generate(). Typically these
+        are extracted from the environment somehow.'''
+        pass
+
+    def generate(self, rsp, *args, **kwargs):
         '''Generates the portion of the response, or generally takes whatever action
         is necessary for this action.
 
@@ -245,6 +264,14 @@ class Action(object):
         If this method throws any exception it will be trapped and a 500 error page
         will be generated.'''
         pass
+
+    def __str__(self):
+        cls = self.__class__
+        if len(cls.__name__) > 33 and cls.__name__[-33] == '_':
+            # it's a derived subclass
+            return '%-32s [%s]' % (cls.__name__[:-33] + ' instance', cls.__name__[-32:])
+        else:
+            return '%-32s  <standard>' % (cls.__name__ + ' instance')
 
 class HashKey(object):
     '''A surrogate key for objects which are not themselves hashable'''
@@ -262,6 +289,9 @@ class HashKey(object):
     def __hash__(self):
         return self.hashcode
 
+accept_fmt = '%-60s accepting request %s'
+reject_fmt = '%-60s rejecting request %s'
+
 class AllActions(Action):
     @classmethod
     def handles(cls, req):
@@ -271,26 +301,28 @@ class AllActions(Action):
 
     def __new__(cls, req):
         handlers = []
+        req = copy(req)
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                cls.debug(req, '%s rejecting request %s (returning)' % (hc, req))
+                cls.debug(req, reject_fmt % (hc, req))
+                del req
                 return None
             elif isinstance(h, AllActions):
                 handlers.extend(h.handlers)
+                req = h.req
                 del h
             else:
-                cls.debug(req, '%s accepting request %s' % (hc, req))
+                cls.debug(req, accept_fmt % (hc, req))
                 handlers.append(h)
-                req = h.transform()
-                if not isinstance(req, BaseRequest):
-                    raise TypeError('request not instance of BaseRequest (got type %s)' % type(req))
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
             return None
         else:
             instance = super(AllActions, cls).__new__(cls, req)
+            for h in handlers:
+                h.req = req
             instance.handlers = handlers
             return instance
 
@@ -298,9 +330,7 @@ class AllActions(Action):
         del self.handlers
 
     def __str__(self):
-        self_string = super(AllActions, self).__str__() + "\n"
-        sub_string = ''.join(''.join("  %s\n" % l for l in str(h).splitlines()) for h in self.handlers)
-        return self_string + sub_string
+        return '\n'.join(str(h) for h in self.handlers) + '\n'
 
     def authorized(self):
         return all(h.authorized() for h in self.handlers)
@@ -311,9 +341,19 @@ class AllActions(Action):
     def action_id(self):
         return hash_iterable(filter(None, (h.action_id() for h in self.handlers)))
 
-    def generate(self, rsp):
+    def parameters(self):
+        args = []
+        kwargs = {}
         for h in self.handlers:
-            if h.generate(rsp):
+            hargs, hkwargs = check_params(h.parameters())
+            args.extend(hargs)
+            kwargs.update(hkwargs)
+        return args, kwargs
+
+    def generate(self, rsp, *args, **kwargs):
+        for h in self.handlers:
+            hargs, hkwargs = validate_arguments(h.generate, (h, rsp) + args, kwargs, True)
+            if h.generate(rsp, *(hargs[2:]), **hkwargs):
                 return True
 
 class AnyAction(Action):
@@ -321,9 +361,9 @@ class AnyAction(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                cls.debug(req, '%s rejecting request %s' % (hc, req))
+                cls.debug(req, reject_fmt % (hc, req))
             else:
-                cls.debug(req, '%s accepting request %s (returning)' % (hc, req))
+                cls.debug(req, accept_fmt % (hc, req))
                 return h
         return None
         # Note that we never call super(...).__new__(...) here. So there is no
@@ -333,8 +373,8 @@ class OptAction(Action):
     def __new__(cls, req):
         h = cls.handler_class.handle(req)
         if h is None:
-            cls.debug(req, '%s rejecting request %s (returning)' % (hc, req))
+            cls.debug(req, reject_fmt % (hc, req))
             return cls.handle(req)
         else:
-            cls.debug(req, '%s accepting request %s (returning)' % (hc, req))
+            cls.debug(req, accept_fmt % (hc, req))
             return h
