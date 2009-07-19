@@ -120,13 +120,14 @@ class WerkzeugMapFilter(Action):
         except NotFound: # don't let this exception propagate because another resource might handle the request
             return None
         else:
-            if isinstance(endpoint, (str, unicode)):
+            if not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
+            canonical_url = cls.routing_map.build(endpoint, arguments, self.req.method)
+            arguments['canonical_url'] = canonical_url
             instance = Action.__new__(AllActions, req)
             instance.req = req
-            instance.arguments = arguments
             argument_container = super(WerkzeugMapFilter, cls).__new__(cls, req)
-            argument_container.arguments = arguments
+            argument_container.__parameters = arguments
             instance.handlers = [argument_container, endpoint.handle(req)]
             return instance
 
@@ -135,4 +136,4 @@ class WerkzeugMapFilter(Action):
         return super(WerkzeugMapFilter, cls).derive(routing_map=routing_map, action_map=action_map)
 
     def parameters(self):
-        return [], self.arguments
+        return [], self.__parameters
