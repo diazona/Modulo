@@ -4,6 +4,7 @@ from modulo.actions.standard import FileResource
 from werkzeug.templates import Template
 
 class MiniTemplate(FileResource):
-    def generate(self, rsp):
-        rsp.data = Template.from_file(self.filename).render(self.req.environ)
-        return True
+    def generate(self, rsp, **kwargs):
+        template_data = self.req.environ.copy()
+        template_data.update(kwargs)
+        rsp.data = Template.from_file(self.filename).render(template_data)

@@ -201,15 +201,15 @@ class ContentLengthAction(Action):
     the length of the generated content is. Keep in mind that it's generally
     better to send no Content-Length header than to send one with the wrong
     value.'''
+    @classmethod
+    def derive(cls, content_length):
+        super(ContentLengthAction, cls).derive(content_length=content_length)
+
     def generate(self, rsp):
         if hasattr(self, content_length):
             rsp.content_length = self.content_length
         else:
             rsp.content_length = len(rsp.data)
-
-    @classmethod
-    def derive(cls, content_length):
-        super(ContentLengthAction, cls).derive(content_length=content_length)
 
 class ContentMD5Action(Action):
     '''An action to set the Content-MD5 header.
@@ -225,12 +225,26 @@ class ContentMD5Action(Action):
     iterator instead of setting rsp.data directly, this resource will *not*
     read the elements of the iterator to figure out what the length of the
     generated content is.'''
+    @classmethod
+    def derive(cls, content_md5):
+        super(ContentMD5Action, cls).derive(content_md5=content_md5)
+
     def generate(self, rsp):
         if hasattr(self, content_length):
             rsp.content_md5 = self.content_md5
         else:
             rsp.content_md5 = hashlib.md5(rsp.data).hexdigest()
 
+class WerkzeugCanonicalizer(Action):
+    '''Sets the canonical URL based on a MapAdapter produced by a previous Werkzeug router.
+
+    This needs to be chained after a WerkzeugMapFilter.'''
     @classmethod
-    def derive(cls, content_md5):
-        super(ContentMD5Action, cls).derive(content_md5=content_md5)
+    def handles(cls, req):
+        return True
+
+    def generate(self, rsp, map_adapter):
+        def canonicalize(url, method='GET'):
+            c_endpoint, c_args = map_adapter.match(url, method)
+            return map_adapter.build(c_endpoint, c_args, method)
+        return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}

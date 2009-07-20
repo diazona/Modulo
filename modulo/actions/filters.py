@@ -29,7 +29,7 @@ class URIFilter(Action):
     def derive(cls, regex):
         return super(URIFilter, cls).derive(regex=regex)
 
-    def parameters(self):
+    def generate(self, rsp):
         match = self.__match(uri_path(self.req.environ))
         if match.lastindex:
             return match.groups(), match.groupdict()
@@ -116,18 +116,18 @@ class WerkzeugMapFilter(Action):
 
     def __new__(cls, req):
         try:
-            endpoint, arguments = cls.routing_map.bind_to_environ(req).match(req.path, req.method)
+            map_adapter = cls.routing_map.bind_to_environ(req)
+            endpoint, arguments = map_adapter.match(req.path, req.method)
         except NotFound: # don't let this exception propagate because another resource might handle the request
             return None
         else:
             if not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
-            canonical_url = cls.routing_map.build(endpoint, arguments, self.req.method)
-            arguments['canonical_url'] = canonical_url
+            arguments['map_adapter'] = map_adapter
             instance = Action.__new__(AllActions, req)
             instance.req = req
             argument_container = super(WerkzeugMapFilter, cls).__new__(cls, req)
-            argument_container.__parameters = arguments
+            argument_container.parameters = arguments
             instance.handlers = [argument_container, endpoint.handle(req)]
             return instance
 
@@ -135,5 +135,5 @@ class WerkzeugMapFilter(Action):
     def derive(cls, routing_map, action_map=None):
         return super(WerkzeugMapFilter, cls).derive(routing_map=routing_map, action_map=action_map)
 
-    def parameters(self):
-        return [], self.__parameters
+    def generate(self, rsp):
+        return self.parameters

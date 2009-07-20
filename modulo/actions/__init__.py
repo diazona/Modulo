@@ -243,11 +243,6 @@ class Action(object):
         provide a different ID for each).'''
         return 0
 
-    def parameters(self):
-        '''Return any parameters that should be provided to generate(). Typically these
-        are extracted from the environment somehow.'''
-        pass
-
     def generate(self, rsp, *args, **kwargs):
         '''Generates the portion of the response, or generally takes whatever action
         is necessary for this action.
@@ -261,6 +256,10 @@ class Action(object):
         its data from a cache if appropriate, rather than automatically running some
         expensive database access or such every time.
 
+        generate() may return a 2-element tuple containing a list and a dictionary,
+        which will be added to the args and kwargs (respectively) passed to the generate()
+        methods of the remaining actions.
+
         If this method throws any exception it will be trapped and a 500 error page
         will be generated.'''
         pass
@@ -269,9 +268,9 @@ class Action(object):
         cls = self.__class__
         if len(cls.__name__) > 33 and cls.__name__[-33] == '_':
             # it's a derived subclass
-            return '%-32s [%s]' % (cls.__name__[:-33] + ' instance', cls.__name__[-32:])
+            return '%s [%s]' % (cls.__name__[:-33], cls.__name__[-32:])
         else:
-            return '%-32s  <standard>' % (cls.__name__ + ' instance')
+            return '%s  <standard>' % (cls.__name__)
 
 class HashKey(object):
     '''A surrogate key for objects which are not themselves hashable'''
@@ -341,20 +340,12 @@ class AllActions(Action):
     def action_id(self):
         return hash_iterable(filter(None, (h.action_id() for h in self.handlers)))
 
-    def parameters(self):
-        args = []
-        kwargs = {}
+    def generate(self, rsp, **kwargs):
         for h in self.handlers:
-            hargs, hkwargs = check_params(h.parameters())
-            args.extend(hargs)
+            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], kwargs, True)
+            p = h.generate(rsp, *(hargs[2:]), **hkwargs)
+            hargs, hkwargs = check_params(p)
             kwargs.update(hkwargs)
-        return args, kwargs
-
-    def generate(self, rsp, *args, **kwargs):
-        for h in self.handlers:
-            hargs, hkwargs = validate_arguments(h.generate, (h, rsp) + args, kwargs, True)
-            if h.generate(rsp, *(hargs[2:]), **hkwargs):
-                return True
 
 class AnyAction(Action):
     def __new__(cls, req):

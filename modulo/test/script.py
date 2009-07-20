@@ -17,12 +17,13 @@ from werkzeug import script
 from werkzeug.routing import Map, Rule
 
 def make_app():
+    hello_tree = WerkzeugCanonicalizer & HelloWorldAction
     resource_tree = all_of(
         DateAction,
         ContentTypeAction('text/html'),
         WerkzeugMapFilter(routing_map = Map([
-            Rule('/hello', endpoint=HelloWorldAction),
-            Rule('/hello<anything>', endpoint=HelloWorldAction)
+            Rule('/hello', endpoint=hello_tree),
+            Rule('/hello<anything>', endpoint=hello_tree)
         ])) | all_of(
             any_of(
                 all_of(

@@ -4,6 +4,7 @@
 
 import datetime
 import hashlib
+import inspect
 
 _rfc1123_fmt = '%a, %d %b %Y %H:%M:%S GMT'
 _rfc850_fmt = '%A, %d-%b-%y %H:%M:%S GMT'
@@ -75,13 +76,41 @@ class wrap_dict(dict):
         del self.__parent
 
 def check_params(params):
-    if params is None:
-        return [], {}
+    '''Returns a tuple(list, dict) based on input params.
+
+    If None is passed, return [], {}. If only a list is passed, return
+    params, {}. If only a dict is passed, return [], params. And if a
+    two-element tuple is passed, if the second element is a dict, return
+    params as passed; otherwise return list(params), {}.'''
+    if isinstance(params, tuple):
+        if len(params) is 2:
+            args, kwargs = params
+            if not isinstance(args, list):
+                args = [args]
+            if not isinstance(kwargs, dict):
+                args.append(kwargs)
+                kwargs = {}
+            return args, kwargs
+        else:
+            return list(params), {}
+    elif isinstance(params, list):
+        return params, {}
+    elif isinstance(params, dict):
+        return [], params
     else:
-        args, kwargs = params
-        if not isinstance(args, list):
-            args = [args]
-        if not isinstance(kwargs, dict):
-            args.append(kwargs)
-            kwargs = {}
-        return args, kwargs
+        return [], {}
+
+def compact(*names):
+    caller = inspect.stack()[1][0] # caller of compact()
+    vars = {}
+    for n in names:
+        if n in caller.f_locals:
+            vars[n] = caller.f_locals[n]
+        elif n in caller.f_globals:
+            vars[n] = caller.f_globals[n]
+    return vars
+
+def extract(vars):
+    caller = inspect.stack()[1][0] # caller of extract()
+    for n, v in vars.iteritems():
+        caller.f_locals[n] = v   # NEVER DO THIS ;-)

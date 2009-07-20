@@ -36,24 +36,25 @@ obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
 
 class ClearsilverRendering(Action):
-    def generate(self, rsp):
-        if not hasattr(self.req, 'hdf'):
-            self.req.hdf = neo_util.HDF()
-        hdf = self.req.hdf
+    def generate(self, rsp, **kwargs):
+        if hasattr(self.req, 'hdf'):
+            hdf = self.req.hdf
+        else:
+            hdf = neo_util.HDF()
         try:
             cs = self.req.cs
         except AttributeError:
-            raise EmptyTemplateError, 'No Clearsilver template objects defined'
+            raise EmptyTemplateError, 'No Clearsilver template object defined'
         # emulate the Clearsilver CGI kit
         load_hdf_cgi_vars(self.req)
         load_hdf_cookie_vars(self.req)
         load_hdf_session_vars(self.req)
         load_hdf_common_vars(self.req)
+        hdf_insert_dict(hdf, kwargs, 'page')
         output = self.req.cs.render()
         if not output:
             raise EmptyTemplateError, 'Clearsilver template produced no output'
         rsp.data = output
-        return True
 
 def load_hdf_cgi_vars(req):
     '''Load request data into the HDF as is done by the CGI kit.
@@ -236,3 +237,40 @@ def load_hdf_session_vars(req):
 def load_hdf_common_vars(req):
     '''Load the HDF with values common to every page'''
     req.hdf.setValue('common.currentyear', time.strftime('%Y'))
+
+def hdf_iterate(hdf, path = None):
+    '''Iterates over the children of an HDF node'''
+    if path:
+        hdf = hdf.getObj(path)
+    if hdf:
+        hdf = hdf.child()
+        while hdf:
+            yield hdf
+            hdf = hdf.next()
+
+def hdf_insert_value(hdf, dvalue, path, fmt=str):
+    '''Insert a value as a string'''
+    if path:
+        path = path.rstrip('.')
+    if isinstance(dvalue, list):
+        hdf_insert_list(hdf, dvalue, path, fmt)
+    elif isinstance(dvalue, dict):
+        hdf_insert_dict(hdf, dvalue, path, fmt)
+    else:
+        hdf.setValue(path, fmt(dvalue))
+
+def hdf_insert_list(hdf, dlist, path='', fmt=lambda s: s):
+    '''Insert a list of values as children of an HDF node'''
+    n = 0
+    for elem in dlist:
+        if elem != dlist:
+            hdf_insert_value(hdf, elem, '%s.%d' % (path, n), fmt)
+            n += 1
+
+def hdf_insert_dict(hdf, ddict, path='', fmt=lambda s: s):
+    '''Insert a dictionary of values as children of an HDF node'''
+    for key in ddict.keys():
+        if ddict[key] != ddict:
+            key_path = '%s.%s' % (path, str(key).replace('.', '_'))
+            hdf_insert_value(hdf, ddict[key], key_path, fmt)
+

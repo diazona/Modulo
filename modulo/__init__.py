@@ -3,7 +3,6 @@
 '''Basic components of Modulo.'''
 
 from modulo.actions import all_of, any_of, opt
-from modulo.utilities import check_params
 from modulo.wrappers import Request, Response
 from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
 
@@ -16,8 +15,7 @@ def run_everything(tree, request):
     request.loggers['modulo'].debug('\n'+str(handler))
     response = Response()
     request.handler = handler
-    args, kwargs = check_params(params = handler.parameters())
-    handler.generate(response, *args, **kwargs)
+    handler.generate(response)
     return response
 
 def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
