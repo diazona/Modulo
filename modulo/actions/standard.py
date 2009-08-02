@@ -9,6 +9,7 @@ import os.path
 import time
 from datetime import datetime
 from modulo.actions import Action
+from modulo.utilities import func_update
 from os.path import isdir, isfile
 from stat import ST_MTIME
 from werkzeug import Template
@@ -239,12 +240,17 @@ class WerkzeugCanonicalizer(Action):
     '''Sets the canonical URL based on a MapAdapter produced by a previous Werkzeug router.
 
     This needs to be chained after a WerkzeugMapFilter.'''
-    @classmethod
-    def handles(cls, req):
-        return True
-
-    def generate(self, rsp, map_adapter):
-        def canonicalize(url, method='GET'):
+    def generate(self, rsp, map_adapter, canonicalize=None):
+        def werkzeug_canonicalize(url, method='GET'):
             c_endpoint, c_args = map_adapter.match(url, method)
             return map_adapter.build(c_endpoint, c_args, method)
+        canonicalize = func_update(werkzeug_canonicalize, canonicalize)
+        return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
+
+class NoopCanonicalizer(Action):
+    '''Sets the canonical URL based on the actual URL.'''
+    def generate(self, rsp, canonicalize=None):
+        def noop_canonicalize(url, method='GET'):
+            return url
+        canonicalize = func_update(noop_canonicalize, canonicalize)
         return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
