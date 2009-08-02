@@ -115,7 +115,7 @@ def extract(vars):
     for n, v in vars.iteritems():
         caller.f_locals[n] = v   # NEVER DO THIS ;-)
 
-def func_default(new_func, old_func):
+def func_update(new_func, old_func):
     '''Creates a wrapper function that calls new_func, then if the return value
     evaluates to False, calls old_func and returns that.'''
     if not old_func:
