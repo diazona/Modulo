@@ -39,6 +39,13 @@ class FileResource(Action):
     The point of the defaults being set up as they are is that FileResource by
     itself can be used as a static file server (albeit an inefficient one).'''
     @classmethod
+    def derive(cls, filename):
+        if isinstance(filename, (str, unicode)):
+            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req: filename))
+        else:
+            return super(FileResource, cls).derive(filename=filename)
+
+    @classmethod
     def filename(cls, req):
         return cls.request_filename(req)
 
@@ -56,7 +63,7 @@ class FileResource(Action):
 
     def __init__(self, req):
         super(FileResource, self).__init__(req)
-        self.filename = self.filename(req) # slight optimization
+        self.filename = self.filename(req)
 
     def last_modified(self):
         return datetime.utcfromtimestamp(os.stat(self.filename)[ST_MTIME])
