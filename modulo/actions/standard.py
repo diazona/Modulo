@@ -261,3 +261,10 @@ class NoopCanonicalizer(Action):
             return url
         canonicalize = func_update(noop_canonicalize, canonicalize)
         return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
+
+from modulo.session import session_store
+
+class SessionSaver(Action):
+    def generate(self, rsp):
+        if self.req.session.should_save:
+            session_store.save(self.req.session)
