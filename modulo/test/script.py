@@ -1,11 +1,13 @@
 #!/usr/bin/python
 
+import logging
 import sys
 from os.path import abspath, dirname
 
 basedir = dirname(dirname(dirname(abspath(__file__))))
 if basedir not in sys.path:
     sys.path.append(basedir)
+logging.getLogger().setLevel(logging.DEBUG)
 
 from modulo import *
 from modulo.actions.filters import *
@@ -16,9 +18,15 @@ from modulo.test.hello import HelloWorldAction
 from werkzeug import script
 from werkzeug.routing import Map, Rule
 
+class SetDocRoot(Action):
+    def transform(self, environ):
+        environ['DOCUMENT_ROOT'] = dirname(abspath(__file__))
+        return environ
+
 def make_app():
     hello_tree = WerkzeugCanonicalizer & HelloWorldAction
     resource_tree = all_of(
+        SetDocRoot,
         DateAction,
         ContentTypeAction('text/html'),
         WerkzeugMapFilter(routing_map = Map([

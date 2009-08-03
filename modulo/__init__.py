@@ -2,17 +2,27 @@
 
 '''Basic components of Modulo.'''
 
-from modulo.actions import all_of, any_of, opt
-from modulo.wrappers import Request, Response
+import logging
+import sys
+from werkzeug import Local, LocalManager
 from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
 
-__all__ = ['WSGIModuloApp', 'all_of', 'any_of', 'opt']
+local = Local()
+local_manager = LocalManager([local])
+logging.basicConfig(stream=local('error_stream'))
+local.error_stream = sys.stderr
+
+# prevent the werkzeug logger from propagating messages because it has its own output scheme
+logging.getLogger('werkzeug').propagate = False
+
+from modulo.actions import all_of, any_of, opt
+from modulo.wrappers import Request, Response
 
 def run_everything(tree, request):
     handler = tree.handle(request)
     if handler is None:
         raise NotFound()
-    request.loggers['modulo'].debug('\n'+str(handler))
+    logging.getLogger('modulo').debug('\n'+str(handler))
     response = Response()
     request.handler = handler
     handler.generate(response)
@@ -55,3 +65,5 @@ def _wsgi(e):
         return e
     else:
         return InternalServerError(e.message)
+
+__all__ = ['WSGIModuloApp', 'all_of', 'any_of', 'opt']

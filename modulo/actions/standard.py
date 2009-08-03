@@ -4,6 +4,7 @@
 
 import dircache
 import hashlib
+import logging
 import mimetypes
 import os.path
 import time
@@ -59,6 +60,7 @@ class FileResource(Action):
 
     @classmethod
     def handles(cls, req):
+        logging.getLogger('modulo.actions.standard').debug(cls.filename(req))
         return isfile(cls.filename(req))
 
     def __init__(self, req):
