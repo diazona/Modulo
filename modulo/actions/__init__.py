@@ -17,6 +17,7 @@ either a static file or a CGI script. In contrast, the action architecture
 lets you specify the content and properties of each resource individually,
 and the system takes care of putting them together.'''
 
+import logging
 import os
 import random
 import re
@@ -129,24 +130,6 @@ class ActionMetaclass(type):
         h = super(ActionMetaclass, self).__call__(req)
         return h
 
-# more Python voodoo! Use a descriptor so that the method will be either a static method
-# or instance method depending on whether we call it from the class or an instance
-class LoggingDescriptor(object):
-    def __init__(self, method_name):
-        super(LoggingDescriptor, self).__init__()
-        self.method_name = method_name
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            logger_name = getattr(owner, '__logger__', 'modulo')
-            def log(req, *args, **kwargs):
-                return getattr(req.loggers[logger_name], self.method_name)(*args, **kwargs)
-        else:
-            logger_name = getattr(instance, '__logger__', 'modulo')
-            def log(*args, **kwargs):
-                return getattr(instance.req.loggers[logger_name], self.method_name)(*args, **kwargs)
-        return log
-
 class Action(object):
     '''Represents an action that can be taken by the server.
 
@@ -157,14 +140,6 @@ class Action(object):
     response that winds up being returned to the client is a composite thing put
     together from different parts provided by different handlers.'''
     __metaclass__ = ActionMetaclass
-
-    debug = LoggingDescriptor('debug')
-    info = LoggingDescriptor('info')
-    warning = LoggingDescriptor('warning')
-    error = LoggingDescriptor('error')
-    critical = LoggingDescriptor('critical')
-    exception = LoggingDescriptor('exception')
-    log = LoggingDescriptor('log')
 
     @classmethod
     def derive(cls, **kwargs):
@@ -304,7 +279,7 @@ class AllActions(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                cls.debug(req, reject_fmt % (hc, req))
+                logging.getLogger('modulo').debug(reject_fmt % (hc, req))
                 del req
                 return None
             elif isinstance(h, AllActions):
@@ -312,7 +287,7 @@ class AllActions(Action):
                 req = h.req
                 del h
             else:
-                cls.debug(req, accept_fmt % (hc, req))
+                logging.getLogger('modulo').debug(accept_fmt % (hc, req))
                 handlers.append(h)
         if len(handlers) == 1:
             return handlers[0]
@@ -352,9 +327,9 @@ class AnyAction(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                cls.debug(req, reject_fmt % (hc, req))
+                logging.getLogger('modulo').debug(reject_fmt % (hc, req))
             else:
-                cls.debug(req, accept_fmt % (hc, req))
+                logging.getLogger('modulo').debug(accept_fmt % (hc, req))
                 return h
         return None
         # Note that we never call super(...).__new__(...) here. So there is no
@@ -364,8 +339,8 @@ class OptAction(Action):
     def __new__(cls, req):
         h = cls.handler_class.handle(req)
         if h is None:
-            cls.debug(req, reject_fmt % (hc, req))
+            logging.getLogger('modulo').debug(reject_fmt % (hc, req))
             return cls.handle(req)
         else:
-            cls.debug(req, accept_fmt % (hc, req))
+            logging.getLogger('modulo').debug(accept_fmt % (hc, req))
             return h
