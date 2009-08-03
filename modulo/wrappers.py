@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from collections import defaultdict
-from modulo.session import session_store
 from logging import Logger, StreamHandler
 from werkzeug import Request as WerkzeugRequest, Response as WerkzeugResponse
 from werkzeug import cached_property
@@ -25,12 +24,16 @@ class BranchMixin(object):
         return LazyCopy(self)
 
 class SessionMixin(object):
+    # Designed so that the session subsystem is only initialized if req.session is accessed
     @cached_property
     def session(self):
+        from modulo.session import session_store
         sid = self.cookie.get('sessionid')
         if sid:
+            logging.getLogger('modulo.session').debug('restoring session')
             return session_store.get(sid)
         else:
+            logging.getLogger('modulo.session').debug('initializing session')
             return session_store.new()
 
 class ModuloRequest(WerkzeugRequest, LoggerMixin, BranchMixin, SessionMixin):
