@@ -1,0 +1,15 @@
+'''The WSGI application script file.
+
+If using Apache/mod_wsgi, this is the file you specify in the
+WSGIScriptAlias directive. It's designed to work with the default
+mod_wsgi configuration, namely the expectation that there is a
+module-level variable called "application" which contains the
+actual WSGI application. If you like, you can use the WSGICallableObject
+directive to change that name, and then change the name of the variable
+in this file to match.'''
+
+from app import create_application
+
+application = create_application()
+
+# kate: syntax Python;

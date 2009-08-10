@@ -1,0 +1,21 @@
+#!/usr/bin/python
+
+'''A management script for the web application.'''
+
+from werkzeug import script
+
+from app import create_application
+
+action_runserver = script.make_runserver(create_application)
+action_shell = script.make_shell(create_application)
+
+def action_syncdb():
+    '''Syncs the database with the models defined in the application.'''
+    #create_application() # just to make sure Elixir entities are defined
+    from elixir import setup_all
+    setup_all(True)
+
+if __name__ == '__main__':
+    script.run()
+
+# kate: syntax Python;

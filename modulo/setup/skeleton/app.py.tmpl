@@ -1,0 +1,30 @@
+'''The main file of the web application.'''
+
+try:
+    # Import the settings module from the same directory this file is in.
+    import settings
+except ImportError:
+    print 'There was an error importing the settings module. Make sure it\'s in the same directory as app.py.'
+
+from modulo import WSGIModuloApp
+from modulo import all_of, any_of
+from modulo.actions.standard import ContentTypeAction, DateAction, DirectoryResource, FileResource
+
+# Here is where you build the tree of actions that constitute your
+# Modulo application. You can use the actions distributed with Modulo,
+# as well as any you write yourself.
+#
+# The default action_tree implements a no-frills static file server
+# using FileResource, and DirectoryResource for directory listings.
+action_tree = all_of(
+    DateAction,
+    any_of(
+        ContentTypeAction & FileResource,
+        ContentTypeAction('text/html') & DirectoryResource
+    )
+)
+
+def create_application():
+    return WSGIModuloApp(action_tree)
+
+# kate: syntax Python;

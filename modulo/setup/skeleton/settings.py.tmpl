@@ -1,0 +1,45 @@
+'''The settings module for the Modulo application.
+
+Technically this is a Python module, so any Python code can go in here,
+but it's intended to just have a bunch of assignments (together with
+whatever code is needed to figure out those assignments). All
+module-level variables defined in this module will become configuration
+settings for the app.
+
+If you would like to introduce additional configuration settings which
+are used only by your application, you can do so here, but it's probably
+a good idea to group them separately from the default settings so you
+remember which are which.'''
+
+# The site administrator's name
+$cfg_line('admin_name')
+# The site administrator's email address
+$cfg_line('admin_email')
+# The SQLAlchemy-style database URL
+$cfg_line('database_url')
+# The server's timezone
+$cfg_line('timezone')
+
+# Default address that emails should be sent from
+$cfg_line('email_from')
+# Hostname of SMTP server. Set to None to disable SMTP.
+$cfg_line('smtp_host')
+# Port of SMTP server.
+$cfg_line('smtp_port', 587)
+# Username to authenticate with SMTP server
+$cfg_line('smtp_user')
+# Password to authenticate with SMTP server
+$cfg_line('smtp_pass')
+# Whether to use TLS
+$cfg_line('smtp_use_tls', True)
+# Path to sendmail binary - set to None to disable sendmail
+$cfg_line('sendmail_path', '/usr/sbin/sendmail')
+# Username to pass to sendmail for authentication
+$cfg_line('sendmail_user')
+# Password to pass to sendmail for authentication
+$cfg_line('sendmail_pass')
+
+# Whether the site runs in debug mode
+$cfg_line('debug', False)
+
+# kate: syntax Python;

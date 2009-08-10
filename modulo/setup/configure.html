@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Modulo Application Configuration</title>
+        <link rel="stylesheet" type="text/css" href="modulo_setup.css"/>
+        <script language="javascript">
+            function updateDBFields() {
+                var database_system = document.getElementById("database_system");
+                if (database_system.selectedIndex == 0) {
+                    document.getElementById("database_host").disabled = 1;
+                    document.getElementById("database_port").disabled = 1;
+                    document.getElementById("database_username").disabled = 1;
+                    document.getElementById("database_password").disabled = 1;
+                }
+                else {
+                    document.getElementById("database_host").disabled = 0;
+                    document.getElementById("database_port").disabled = 0;
+                    document.getElementById("database_username").disabled = 0;
+                    document.getElementById("database_password").disabled = 0;
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="Body">
+            <h1>Modulo site setup</h1>
+            <form action="/configurate" method="POST">
+            <table>
+            <tbody>
+                <tr><th colspan="2">Administration</th></tr>
+                <tr><td class="left">Admin name:</td><td class="right"><input class="full" type="text" name="admin_name"/></td></tr>
+                <tr><td class="left">Admin email:</td><td class="right"><input class="full" type="text" name="admin_email"/></td></tr>
+            </tbody>
+            <tbody>
+                <tr><th colspan="2">Database</th></tr>
+                <tr>
+                    <td class="left"><label for="database_system">Database type:</label></td>
+                    <td class="right">
+                        <select name="database_system" id="database_system" onchange="updateDBFields();">
+                            <option value="sqlite">SQLite</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mssql">MSSQL</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="firebird">Firebird</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr><td class="left"><label for="database_name">Database name:</label></td><td class="right"><input class="full" type="text" name="database_name" id="database_name"/></td></tr>
+                <tr><td class="left"><label for="database_host">Database host:</label></td><td class="right"><input class="full" type="text" name="database_host" id="database_host" disabled/></td></tr>
+                <tr><td class="left"><label for="database_port">Database port:</label></td><td class="right"><input class="full" type="text" name="database_port" id="database_port" disabled/></td></tr>
+                <tr><td class="left"><label for="database_username">Database username:</label></td><td class="right"><input class="full" type="text" name="database_username" id="database_username" disabled/></td></tr>
+                <tr><td class="left"><label for="database_password">Database password:</label></td><td class="right"><input class="full" type="password" name="database_password" id="database_password" disabled/></td></tr>
+            </tbody>
+            <tbody>
+                <tr><th colspan="2">Localization</th></tr>
+                <tr>
+                    <td class="left">Time zone:</td>
+                    <td class="right">
+                        <select name="timezone" id="timezone">
+                            <option>America/Chicago</option>
+                            <option>America/New_York</option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr><td colspan="2" class="center last"><input type="submit"/></td></tr>
+            </tbody>
+            </table>
+            </form>
+        </div>
+    </body>
+</html>

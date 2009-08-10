@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Modulo Application Configuration</title>
+        <link rel="stylesheet" type="text/css" href="modulo_setup.css"/>
+    </head>
+    <body>
+        <div id="Body">
+            <h1>Modulo site setup</h1>
+            <p class="center info">The file <a href="/settings.py" target="_blank"><tt>$filename</tt></a> already exists. Are you sure you want to overwrite it?</p>
+            <table class="center">
+                <tr>
+                    <td>
+                        <form action="/reallyconfigurate" method="POST">
+                            <input type="submit" value="Overwrite"/>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/dontconfigurate" method="GET">
+                            <input type="submit" value="Leave"/>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>
