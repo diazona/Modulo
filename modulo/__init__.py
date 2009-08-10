@@ -36,7 +36,10 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
 
     if raise_exceptions:
         def simple_middleware(environ, start_response):
-            return modulo_application(environ, start_response)
+            try:
+                return modulo_application(environ, start_response)
+            except NotFound, e:
+                return _wsgi(e)(environ, start_response)
         return simple_middleware
     elif error_tree is None:
         def exception_middleware(environ, start_response):
