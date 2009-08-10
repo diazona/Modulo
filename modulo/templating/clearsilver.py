@@ -5,6 +5,7 @@ import neo_cs
 import neo_util
 import re
 import time
+from elixir import Entity
 from modulo.actions import Action
 from modulo.actions.standard import FileResource
 from modulo.templating import EmptyTemplateError
@@ -256,6 +257,8 @@ def hdf_insert_value(hdf, dvalue, path, fmt=str):
         hdf_insert_list(hdf, dvalue, path, fmt)
     elif isinstance(dvalue, dict):
         hdf_insert_dict(hdf, dvalue, path, fmt)
+    elif isinstance(dvalue, Entity):
+        hdf_insert_model(hdf, dvalue, path, fmt)
     else:
         hdf.setValue(path, fmt(dvalue))
 
@@ -269,8 +272,10 @@ def hdf_insert_list(hdf, dlist, path='', fmt=lambda s: s):
 
 def hdf_insert_dict(hdf, ddict, path='', fmt=lambda s: s):
     '''Insert a dictionary of values as children of an HDF node'''
-    for key in ddict.keys():
+    for key in ddict.iterkeys():
         if ddict[key] != ddict:
             key_path = '%s.%s' % (path, str(key).replace('.', '_'))
             hdf_insert_value(hdf, ddict[key], key_path, fmt)
 
+def hdf_insert_model(hdf, dmodel, path='', fmt=lambda s: s):
+    hdf_insert_dict(hdf, dmodel.to_dict(), path, fmt)
