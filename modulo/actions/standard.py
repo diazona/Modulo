@@ -263,3 +263,14 @@ class NoopCanonicalizer(Action):
             return url
         canonicalize = func_update(noop_canonicalize, canonicalize)
         return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
+
+class Redirect(Action):
+    @classmethod
+    def derive(cls, location, status_code=303):
+        if status_code not in (302, 303, 307):
+            raise ValueError('status_code must be one of 302, 303, or 307 (got %d)' % status_code)
+        return super(Redirect, cls).derive(status_code=status_code, location=location)
+
+    def generate(self, rsp, **kwargs):
+        rsp.location = self.location % kwargs
+        rsp.status_code = self.status_code
