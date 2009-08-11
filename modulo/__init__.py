@@ -39,14 +39,16 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             try:
                 return modulo_application(environ, start_response)
             except NotFound, e:
-                return _wsgi(e)(environ, start_response)
+                logging.getLogger('modulo').debug('Page not found')
+                return _wsgi(e, environ, start_response)
         return simple_middleware
     elif error_tree is None:
         def exception_middleware(environ, start_response):
             try:
                 return modulo_application(environ, start_response)
             except Exception, e:
-                return _wsgi(e)(environ, start_response)
+                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+                return _wsgi(e, environ, start_response)
         return exception_middleware
     else:
         # Otherwise create a nice error page
@@ -57,16 +59,18 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             try:
                 return modulo_application(environ, start_response)
             except Exception, e:
+                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
                 try:
                     return modulo_exception(environ, start_response)
                 except NotFound:
-                    return _wsgi(e)
+                    logging.getLogger('modulo').error('Page not found in exception handler')
+                    return _wsgi(e, environ, start_response)
         return nice_exception_middleware
 
-def _wsgi(e):
-    if isinstance(e, HTTPException):
-        return e
-    else:
-        return InternalServerError(e.message)
+def _wsgi(e, environ, start_response):
+    if not isinstance(e, HTTPException):
+        logging.getLogger('modulo').debug('Creating InternalServerError')
+        e = InternalServerError(e.message)
+    return e.get_response(environ)(environ, start_response)
 
 __all__ = ['WSGIModuloApp', 'all_of', 'any_of', 'opt']
