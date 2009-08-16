@@ -189,19 +189,11 @@ class Action(object):
         return True
 
     def __init__(self, req):
-        '''Initializes the handler.'''
+        '''Initializes the handler.
+
+        The constructor may alter req.environ.'''
         super(Action, self).__init__()
-        self.transform(req.environ)
         self.req = req
-
-    def transform(self, environ):
-        '''An opportunity for this Action to transform the request. The return
-        value from this method should be a WSGI environment (dict), which will be
-        used in place of the original environment when asking further actions to handle
-        the request. This can be used to implement things like consuming path components.
-
-        By default this method just returns the argument without any modification.'''
-        return environ
 
     def authorized(self):
         '''Return True if the current request is authorized to access this action, False if not'''
