@@ -17,7 +17,7 @@ class URIFilter(Action):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        return bool(cls.__match(uri_path(req.environ)))
+        return bool(cls.__match(req.environ['PATH_INFO']))
 
     @classmethod
     def __match(cls, string):
@@ -30,7 +30,7 @@ class URIFilter(Action):
         return super(URIFilter, cls).derive(regex=regex)
 
     def generate(self, rsp):
-        match = self.__match(uri_path(self.req.environ))
+        match = self.__match(self.req.environ['PATH_INFO'])
         if match.lastindex:
             return match.groups(), match.groupdict()
 
@@ -44,7 +44,7 @@ class URIPrefixFilter(Action):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        path = uri_path(req.environ)
+        path = req.environ['PATH_INFO']
         if not path.startswith(cls.prefix):
             return False
         if cls.prefix.endswith('/'):
@@ -66,7 +66,7 @@ class URISuffixFilter(Action):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req):
-        path = uri_path(req.environ)
+        path = req.environ['PATH_INFO']
         if not path.endswith(cls.suffix):
             return False
         if cls.suffix.startswith('.') or cls.suffix.startswith('/'):
@@ -86,7 +86,10 @@ class URIPrefixConsumer(URIPrefixFilter):
     other handlers down the line.'''
     def __init__(self, req):
         super(URIPrefixConsumer, self).__init__(req)
-        pop_path_info(req.environ)
+        # kind of like Werkzeug's pop_path_info, but instead of moving one segment
+        # over, we move over the entire matched prefix
+        req.environ['PATH_INFO'] = req.environ['PATH_INFO'][len(self.prefix):]
+        req.environ['SCRIPT_NAME'] += self.prefix
 
 class WerkzeugMapFilter(Action):
     '''A filter which acts like a Werkzeug routing map.
