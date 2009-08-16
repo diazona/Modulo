@@ -47,7 +47,10 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             try:
                 return modulo_application(environ, start_response)
             except Exception, e:
-                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+                if isinstance(e, NotFound):
+                    logging.getLogger('modulo').debug('Page not found')
+                else:
+                    logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
                 return _wsgi(e, environ, start_response)
         return exception_middleware
     else:
@@ -59,7 +62,10 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             try:
                 return modulo_application(environ, start_response)
             except Exception, e:
-                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+                if isinstance(e, NotFound):
+                    logging.getLogger('modulo').debug('Page not found')
+                else:
+                    logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
                 try:
                     return modulo_exception(environ, start_response)
                 except NotFound:
