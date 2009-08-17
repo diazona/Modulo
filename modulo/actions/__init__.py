@@ -309,7 +309,7 @@ class AllActions(Action):
 
     def generate(self, rsp, **kwargs):
         for h in self.handlers:
-            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], kwargs, True)
+            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], kwargs.copy(), True)
             p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             hargs, hkwargs = check_params(p)
             kwargs.update(hkwargs)
