@@ -8,6 +8,7 @@ import logging
 import mimetypes
 import os.path
 import time
+import warnings
 from datetime import datetime
 from modulo.actions import Action
 from modulo.utilities import func_update
@@ -272,5 +273,6 @@ class Redirect(Action):
         return super(Redirect, cls).derive(status_code=status_code, location=location)
 
     def generate(self, rsp, **kwargs):
-        rsp.location = self.location % kwargs
+        warnings.warn('Python code functionality in string templates will be removed for security', FutureWarning)
+        rsp.location = Template(self.location).render(kwargs) # TODO: create a more secure miniature template system
         rsp.status_code = self.status_code
