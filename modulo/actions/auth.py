@@ -51,10 +51,13 @@ class ForbiddenAuthorization(Action):
 
 class LoginAuthorization(Action):
     '''A resource which redirects to a login page if not authorized.'''
+    @classmethod
+    def derive(cls, login_url):
+        super(LoginAuthorization, cls).derive(login_url=login_url)
+
     def generate(self):
-        if not self.req.root_resource.authorized():
+        if not self.req.root_action.authorized():
             raise LoginRedirect(self.login_url)
-    login_url = None
 
 class LoginRedirect(HTTPException):
     code = 303
