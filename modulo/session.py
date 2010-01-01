@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 
 from werkzeug.contrib.sessions import FilesystemSessionStore
 from modulo.actions import Action

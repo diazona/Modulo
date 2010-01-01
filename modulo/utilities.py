@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 
 '''A dumping ground for all the random crap that accumulates in the course of development ;-)'''
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: iso-8859-1 -*-
 
 # The setup code to create a new Modulo site...
 # kind of equivalent to Django's django-admin.py

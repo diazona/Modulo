@@ -1,6 +1,6 @@
-#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 
-'''Standard action that are useful for the operation of a web server.'''
+'''Standard actions that are useful for the operation of a web server.'''
 
 import dircache
 import hashlib

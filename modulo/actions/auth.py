@@ -1,4 +1,4 @@
-#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
 
 from modulo.actions import Action
 from werkzeug.exceptions import Forbidden, HTTPException, Unauthorized
