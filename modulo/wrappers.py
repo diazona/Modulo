@@ -1,5 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
+import logging
 from collections import defaultdict
 from logging import Logger, StreamHandler
 from werkzeug import Request as WerkzeugRequest, Response as WerkzeugResponse
@@ -41,7 +42,7 @@ class SessionMixin(object):
     @cached_property
     def session(self):
         from modulo.session import session_store
-        sid = self.cookie.get('sessionid')
+        sid = self.cookies.get('sessionid', None)
         if sid:
             logging.getLogger('modulo.session').debug('restoring session')
             return session_store.get(sid)
