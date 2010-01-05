@@ -21,7 +21,7 @@ from werkzeug.routing import Map, Rule
 
 class SetDocRoot(Action):
     def __init__(self, req):
-        super(SetDocRoot, self).__init__(self, req)
+        super(SetDocRoot, self).__init__(req)
         req.environ['DOCUMENT_ROOT'] = dirname(abspath(__file__))
 
 def make_app():
