@@ -5,7 +5,7 @@
 import logging
 import sys
 from werkzeug import Local, LocalManager
-from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
+from werkzeug.exceptions import HTTPException, InternalServerError, NotFound, _ProxyException
 
 local = Local()
 local_manager = LocalManager([local])
@@ -31,7 +31,6 @@ def run_everything(tree, request):
 def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
     @Request.application
     def modulo_application(request):
-        # First try to generate a normal response
         return run_everything(action_tree, request)
 
     if raise_exceptions:
@@ -41,36 +40,45 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
                 return _wsgi(e, environ, start_response)
+            except _ProxyException, e:
+                return _wsgi(e, environ, start_response)
         return simple_middleware
     elif error_tree is None:
         def exception_middleware(environ, start_response):
             try:
                 return modulo_application(environ, start_response)
+            except NotFound, e:
+                logging.getLogger('modulo').debug('Page not found')
+                return _wsgi(e, environ, start_response)
+            except _ProxyException, e:
+                return _wsgi(e, environ, start_response)
             except Exception, e:
-                if isinstance(e, NotFound):
-                    logging.getLogger('modulo').debug('Page not found')
-                else:
-                    logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
                 return _wsgi(e, environ, start_response)
         return exception_middleware
     else:
-        # Otherwise create a nice error page
         @Request.application
         def modulo_exception(request):
             return run_everything(error_tree, request)
         def nice_exception_middleware(environ, start_response):
             try:
                 return modulo_application(environ, start_response)
+            except _ProxyException, e:
+                return _wsgi(e, environ, start_response)
+            except NotFound, e:
+                logging.getLogger('modulo').debug('Page not found')
             except Exception, e:
-                if isinstance(e, NotFound):
-                    logging.getLogger('modulo').debug('Page not found')
-                else:
-                    logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
-                try:
-                    return modulo_exception(environ, start_response)
-                except NotFound:
-                    logging.getLogger('modulo').error('Page not found in exception handler')
-                    return _wsgi(e, environ, start_response)
+                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+            try:
+                return modulo_exception(environ, start_response)
+            except _ProxyException, e:
+                return _wsgi(e, environ, start_response)
+            except NotFound, e:
+                logging.getLogger('modulo').error('Page not found in exception handler')
+                return _wsgi(e, environ, start_response)
+            except Exception, e:
+                logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
+                return _wsgi(e, environ, start_response)
         return nice_exception_middleware
 
 def _wsgi(e, environ, start_response):
