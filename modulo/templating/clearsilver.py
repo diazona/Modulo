@@ -9,25 +9,27 @@ from elixir import Entity
 from modulo.actions import Action
 from modulo.actions.standard import FileResource
 from modulo.templating import EmptyTemplateError
-from modulo.utilities import environ_next
+from modulo.utilities import compact, environ_next
 
 class ClearsilverDataFile(FileResource):
-    def generate(self, rsp):
-        if not hasattr(self.req, 'hdf'):
-            self.req.hdf = neo_util.HDF()
-        self.req.hdf.readFile(self.filename)
+    def generate(self, rsp, hdf=None):
+        if hdf is None:
+            hdf = neo_util.HDF()
+        hdf.readFile(self.filename)
+        return compact('hdf')
 
     @classmethod
     def ext_request_filename(cls, req):
         return cls.request_filename(req) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
-    def generate(self, rsp):
-        if not hasattr(self.req, 'hdf'):
-            self.req.hdf = neo_util.HDF()
-        if not hasattr(self.req, 'cs'):
-            self.req.cs = neo_cs.CS(self.req.hdf)
-        self.req.cs.parseFile(self.filename)
+    def generate(self, rsp, hdf=None, cs=None):
+        if hdf is None:
+            hdf = neo_util.HDF()
+        if cs is None:
+            cs = neo_cs.CS(hdf)
+        cs.parseFile(self.filename)
+        return compact('hdf', 'cs')
 
     @classmethod
     def ext_request_filename(cls, req):
@@ -37,33 +39,25 @@ obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
 
 class ClearsilverRendering(Action):
-    def generate(self, rsp, **kwargs):
-        if hasattr(self.req, 'hdf'):
-            hdf = self.req.hdf
-        else:
-            hdf = neo_util.HDF()
-        try:
-            cs = self.req.cs
-        except AttributeError:
-            raise EmptyTemplateError, 'No Clearsilver template object defined'
+    def generate(self, rsp, hdf, cs, **kwargs):
         # emulate the Clearsilver CGI kit
-        load_hdf_cgi_vars(self.req)
-        load_hdf_cookie_vars(self.req)
-        load_hdf_session_vars(self.req)
-        load_hdf_common_vars(self.req)
+        load_hdf_cgi_vars(self.req, hdf)
+        load_hdf_cookie_vars(self.req, hdf)
+        load_hdf_session_vars(self.req, hdf)
+        load_hdf_common_vars(self.req, hdf)
         hdf_insert_dict(hdf, kwargs, 'page')
-        output = self.req.cs.render()
+        output = cs.render()
         if not output:
             raise EmptyTemplateError, 'Clearsilver template produced no output'
         rsp.data = output
 
-def load_hdf_cgi_vars(req):
+def load_hdf_cgi_vars(req, hdf):
     '''Load request data into the HDF as is done by the CGI kit.
 
     This method loads the HTTP headers and CGI environment variables.'''
     def transfer_to_hdf(cgi_name, hdf_name):
         if cgi_name in req.environ:
-            req.hdf.setValue(hdf_name, str(req.environ[cgi_name]))
+            hdf.setValue(hdf_name, str(req.environ[cgi_name]))
     # this list is copied right out of Clearsilver's cgi/cgi.c
     transfer_to_hdf('AUTH_TYPE', 'CGI.AuthType')
     transfer_to_hdf('CONTENT_TYPE', 'CGI.ContentType')
@@ -223,21 +217,21 @@ def load_hdf_cgi_vars(req):
     # SOAP
     transfer_to_hdf('HTTP_SOAPACTION', 'HTTP.Soap.Action')
 
-def load_hdf_cookie_vars(req):
+def load_hdf_cookie_vars(req, hdf):
     '''Copies data from the cookies into the HDF object.'''
     cookies = getattr(req, 'cookies', None) or {}
     for key in cookies.keys():
-        req.hdf.setValue('Cookie.' + key, cookies[key])
+        hdf.setValue('Cookie.' + key, cookies[key])
 
-def load_hdf_session_vars(req):
+def load_hdf_session_vars(req, hdf):
     '''Initializes the session and loads its data into the HDF object.'''
     session = getattr(req, 'session', None) or {}
     for key in session.keys():
-        req.hdf.setValue('Session.' + key, req.session[key])
+        hdf.setValue('Session.' + key, req.session[key])
 
-def load_hdf_common_vars(req):
+def load_hdf_common_vars(req, hdf):
     '''Load the HDF with values common to every page'''
-    req.hdf.setValue('common.currentyear', time.strftime('%Y'))
+    hdf.setValue('common.currentyear', time.strftime('%Y'))
 
 def hdf_iterate(hdf, path = None):
     '''Iterates over the children of an HDF node'''
