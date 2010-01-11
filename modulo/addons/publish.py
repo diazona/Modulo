@@ -181,6 +181,7 @@ class TagSubmit(Action):
 # Linkback handling
 #---------------------------------------------------------------------------
 class LinkbackHTMLParser(HTMLParser):
+    '''A parser that extracts information from the page at the target of a link.'''
     def __init__(self, targetURI):
         HTMLParser.__init__(self)
         self.targetURI = targetURI
@@ -211,6 +212,7 @@ class LinkbackHTMLParser(HTMLParser):
             self.title += '&' + name + ';'
 
 class TrackbackAssembler(Action):
+    '''Assembles the data submitted in a request for a trackback.'''
     def generate(self, rsp, canonical_uri):
         linkback = Linkback()
         linkback.local_uri = canonical_uri
@@ -226,8 +228,10 @@ class TrackbackAssembler(Action):
             linkback.remote_title = self.req.args.get('title', '')
             linkback.remote_excerpt = self.req.args.get('excerpt', '')
             linkback.remote_name = self.req.args.get('blog_name', '')
+        return compact('linkback')
 
 class PingbackURIAssembler(Action):
+    '''Assembles the data submitted in a request for a pingback.'''
     def generate(self, rsp):
         xml_request = self.req.read()
         try:
@@ -240,8 +244,15 @@ class PingbackURIAssembler(Action):
         linkback.local_host = self.req.host
         linkback.local_uri = urlparse.urlsplit(canonicalize(target_uri)).path
         linkback.remote_url = source_uri
+        return compact('linkback')
 
 class LinkbackFetcher(Action):
+    '''Fetches the content of the source page of a linkback request and verifies that
+    it does actually contain a link to your site.'''
+    @classmethod
+    def derive(cls, set_title=False):
+        return super(LinkbackFetcher, cls).derive(set_title=set_title)
+        
     def generate(self, rsp, linkback, fault=None):
         if fault:
             return
@@ -266,23 +277,15 @@ class LinkbackFetcher(Action):
                 t_match = re.match(r'(.+)\s*(?:\s\-|:)\s+(.+)', hp.title)
                 #linkback_remote_excerpt = summarize.summarize(...)
                 if t_match:
-                    linkback_remote_name = t_match.group(1)
-                    linkback_remote_title = t_match.group(2)
-                    return compact('linkback_remote_name', 'linkback_remote_title')
+                    linkback.remote_name = t_match.group(1)
+                    linkback.remote_title = t_match.group(2)
                 else:
-                    linkback_remote_title = hp.title
-                    return compact('linkback_remote_title')
+                    linkback.remote_title = hp.title
             else:
                 return {'fault': Fault(17, 'No link to target URI %s found in source URI %s' % (targetURI, sourceURI))}
 
-class PingbackContextAssembler(Action):
-    def generate(self, rsp, linkback, linkback_remote_title, linkback_remote_name='', fault=None):
-        if fault:
-            return
-        linkback.remote_title = linkback_remote_title
-        linkback.remote_name = linkback_remote_name
-
 class LinkbackCommit(Action):
+    '''Commits a linkback request to the database.'''
     def generate(self, rsp, fault=None):
         if fault:
             return
@@ -295,6 +298,7 @@ class LinkbackCommit(Action):
                 return {'fault': Fault(0, 'Internal server error')}
 
 class TrackbackResponse(Action):
+    '''Prepares a response to a trackback request.'''
     def generate(self, rsp, fault=None):
         if fault:
             rsp.data = '<?xml version="1.0" encoding="utf-8"?><response><error>1</error><message>%s</message></response>' % fault.message
@@ -302,6 +306,7 @@ class TrackbackResponse(Action):
             rsp.data = '<?xml version="1.0" encoding="utf-8"?><response><error>0</error></response>'
 
 class PingbackResponse(Action):
+    '''Prepares a response to a pingback request.'''
     def generate(self, rsp, linkback, fault=None):
         if fault:
             self.req.data = xmlrpclib.dumps(fault, methodresponse = True)
@@ -312,9 +317,10 @@ class PingbackResponse(Action):
             self.req.data = xmlrpclib.dumps(('Successful ping to %s' % linkback.local_uri,), methodresponse = True)
 
 TrackbackProcessor = all_of(ContentTypeAction('text/xml', 'utf-8'), TrackbackAssembler, LinkbackFetcher, LinkbackCommit, TrackbackResponse)
-PingbackProcessor = all_of(ContentTypeAction('text/xml', 'utf-8'), PingbackURIAssembler, LinkbackFetcher, PingbackContextAssembler, LinkbackCommit, PingbackResponse)
+PingbackProcessor = all_of(ContentTypeAction('text/xml', 'utf-8'), PingbackURIAssembler, LinkbackFetcher(True), LinkbackCommit, PingbackResponse)
 
 class EnableTrackback(Action):
+    '''Inserts the key trackback_url into the dictionary.'''
     @classmethod
     def derive(cls, trackback_prefix):
         return super(EnableTrackback, cls).derive(trackback_prefix=trackback_prefix)
@@ -323,6 +329,7 @@ class EnableTrackback(Action):
         return {'trackback_url': 'http://' + self.req.host + self.trackback_prefix + canonical_uri}
 
 class EnablePingback(Action):
+    '''Inserts the key pingback_url into the dictionary, and also sets the X-Pingback header.'''
     @classmethod
     def derive(cls, pingback_url):
         return super(EnablePingback, cls).derive(pingback_url)
@@ -332,10 +339,13 @@ class EnablePingback(Action):
         return {'pingback_url': pingback_url}
 
 class LinkbackDisplay(Action):
+    '''Selects all linkback requests submitted for the current page.'''
     def generate(self, rsp, canonical_uri):
-        return {'linkback': Linkback.query.select_by(local_uri=canonical_uri)}
+        return {'linkbacks': Linkback.query.select_by(local_uri=canonical_uri)}
 
 class LinkbackAutodiscoveryParser(HTMLParser):
+    '''Parses some content, like a blog post, and sends linkback requests to all 
+    linkback-capable pages which are linked from the parsed content.'''
     def __init__(self, sourceURI, sourceTitle, blog_name=None):
         HTMLParser.__init__(self)
         self.sourceURI = sourceURI
@@ -407,10 +417,11 @@ class LinkbackAutodiscoveryParser(HTMLParser):
                         rconn.close()
 
 class LinkbackAutodiscovery(Action):
+    '''Runs a blog post through linkback autodiscovery'''
     @classmethod
     def derive(cls, blog_name=None):
         return super(LinkbackAutodiscovery, cls).derive(blog_name=blog_name)
 
     def generate(self, rsp, post):
-        if post.draft:
+        if not post.draft:
             LinkbackAutodiscoveryParser(post.title, self.blog_name).feed(post.text)
