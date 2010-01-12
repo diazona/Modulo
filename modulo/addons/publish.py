@@ -20,6 +20,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 #---------------------------------------------------------------------------
 class Post(Entity):
     title = Field(Unicode(128))
+    slug = Field(Unicode(128))
     draft = Field(Boolean)
     date = Field(DateTime)
     edit_date = Field(DateTime)
@@ -72,24 +73,55 @@ class TransactionID(Action):
 # Posts
 #---------------------------------------------------------------------------
 
+def _pquery(pquery=None):
+    if pquery is None:
+        return Post.query
+    else:
+        return pquery
+
+class PostIDSelector(Action):
+    def generate(self, rsp, pquery, post_id):
+        _pquery(pquery).filter(Post.id==post_id)
+        return {'pquery': pquery}
+class PostDateSelector(Action):
+    def generate(self, rsp, pquery, post_date_min, post_date_max):
+        _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
+        return {'pquery': pquery}
+class PostSlugSelector(Action):
+    def generate(self, rsp, pquery, post_slug):
+        _pquery(pquery).filter(Post.slug==post_slug)
+        return {'pquery': pquery}
+class TagIDSelector(Action):
+    def generate(self, rsp, pquery, tag_id):
+        _pquery(pquery).filter(Post.tags.any(id==tag_id))
+        return {'pquery': pquery}
+class TagNameSelector(Action):
+    def generate(self, rsp, pquery, tag_name):
+        _pquery(pquery).filter(Post.tags.any(name=tag_name))
+        return {'pquery': pquery}
+class UserIDSelector(Action):
+    def generate(self, rsp, pquery, user_id):
+        _pquery(pquery).filter(Post.user.has(id=user_id))
+        return {'pquery': pquery}
+class UserLoginSelector(Action):
+    def generate(self, rsp, pquery, user_login):
+        _pquery(pquery).filter(Post.user.has(login=user_login))
+        return {'pquery': pquery}
+
 class PostDisplay(Action):
-    def generate(self, rsp, post_id):
+    def generate(self, rsp, pquery):
         try:
-            post = Post.query.filter(Post.id==post_id).one()
+            post = pquery.one()
         except NoResultFound:
             raise NotFound
         return compact('post')
 
 class MultiPostDisplay(Action):
-    def generate(self, rsp, post_category=None, tag_name=None, user_id=None):
-        pquery = Post.query
-        if post_category:
-            pquery = pquery.filter(Post.category==post_category)
-        if tag_name:
-            pquery = pquery.filter(Post.tags.any(name=tag_name))
-        if user_id:
-            pquery = pquery.filter(Post.user.has(id=user_id))
-        posts = pquery.all()
+    def generate(self, rsp, pquery):
+        try:
+            posts = pquery.all()
+        except NoResultFound:
+            raise NotFound
         return compact('posts')
 
 class PostSubmitAggregator(Action):
