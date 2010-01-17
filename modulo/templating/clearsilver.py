@@ -19,8 +19,8 @@ class ClearsilverDataFile(FileResource):
         return compact('hdf')
 
     @classmethod
-    def ext_request_filename(cls, req):
-        return cls.request_filename(req) + '.hdf'
+    def request_filename(cls, req):
+        return super(ClearsilverDataFile, cls).request_filename(req) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
     def generate(self, rsp, hdf=None, cs=None):
@@ -32,8 +32,8 @@ class ClearsilverTemplate(FileResource):
         return compact('hdf', 'cs')
 
     @classmethod
-    def ext_request_filename(cls, req):
-        return cls.request_filename(req) + '.cst'
+    def request_filename(cls, req):
+        return super(ClearsilverDataFile, cls).request_filename(req) + '.cst'
 
 obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
