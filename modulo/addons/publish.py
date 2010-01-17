@@ -80,15 +80,15 @@ def _pquery(pquery=None):
         return pquery
 
 class PostIDSelector(Action):
-    def generate(self, rsp, pquery, post_id):
+    def generate(self, rsp, post_id, pquery=None):
         _pquery(pquery).filter(Post.id==post_id)
         return {'pquery': pquery}
 class PostDateSelector(Action):
-    def generate(self, rsp, pquery, post_date_min, post_date_max):
+    def generate(self, rsp, post_date_min, post_date_max, pquery=None):
         _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
         return {'pquery': pquery}
 class PostYearMonthDaySelector(Action):
-    def generate(self, rsp, pquery, post_year, post_month=None, post_day=None):
+    def generate(self, rsp, post_year, post_month=None, post_day=None, pquery=None):
         if post_month is None:
             post_date_min = datetime.datetime(post_year, 1, 1)
             post_date_max = datetime.datetime(post_year + 1, 1, 1)
@@ -104,23 +104,23 @@ class PostYearMonthDaySelector(Action):
         _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
         return {'pquery': pquery}
 class PostSlugSelector(Action):
-    def generate(self, rsp, pquery, post_slug):
+    def generate(self, rsp, post_slug, pquery=None):
         _pquery(pquery).filter(Post.slug==post_slug)
         return {'pquery': pquery}
 class TagIDSelector(Action):
-    def generate(self, rsp, pquery, tag_id):
+    def generate(self, rsp, tag_id, pquery=None):
         _pquery(pquery).filter(Post.tags.any(id==tag_id))
         return {'pquery': pquery}
 class TagNameSelector(Action):
-    def generate(self, rsp, pquery, tag_name):
+    def generate(self, rsp, tag_name, pquery=None):
         _pquery(pquery).filter(Post.tags.any(name=tag_name))
         return {'pquery': pquery}
 class UserIDSelector(Action):
-    def generate(self, rsp, pquery, user_id):
+    def generate(self, rsp, user_id, pquery=None):
         _pquery(pquery).filter(Post.user.has(id=user_id))
         return {'pquery': pquery}
 class UserLoginSelector(Action):
-    def generate(self, rsp, pquery, user_login):
+    def generate(self, rsp, user_login, pquery=None):
         _pquery(pquery).filter(Post.user.has(login=user_login))
         return {'pquery': pquery}
 
@@ -130,15 +130,20 @@ class PostDisplay(Action):
             post = pquery.one()
         except NoResultFound:
             raise NotFound
-        return compact('post')
+        del pquery
+        pquery = None
+        return compact('post', 'pquery')
 
 class MultiPostDisplay(Action):
-    def generate(self, rsp, pquery):
+    def generate(self, rsp, pquery=None):
+        pquery = _pquery(pquery)
         try:
             posts = pquery.all()
         except NoResultFound:
             raise NotFound
-        return compact('posts')
+        del pquery # just a bit of premature optimization, for the fun of it
+        pquery = None
+        return compact('posts', 'pquery')
 
 class PostSubmitAggregator(Action):
     def generate(self, rsp):
