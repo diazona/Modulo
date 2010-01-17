@@ -61,7 +61,7 @@ class FileResource(Action):
 
     @classmethod
     def handles(cls, req):
-        logging.getLogger('modulo.actions.standard').debug(cls.filename(req))
+        logging.getLogger('modulo.actions.standard').debug('Checking file: ' + cls.filename(req))
         return isfile(cls.filename(req))
 
     def __init__(self, req):
