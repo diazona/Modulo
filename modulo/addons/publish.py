@@ -87,6 +87,22 @@ class PostDateSelector(Action):
     def generate(self, rsp, pquery, post_date_min, post_date_max):
         _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
         return {'pquery': pquery}
+class PostYearMonthDaySelector(Action):
+    def generate(self, rsp, pquery, post_year, post_month=None, post_day=None):
+        if post_month is None:
+            post_date_min = datetime.datetime(post_year, 1, 1)
+            post_date_max = datetime.datetime(post_year + 1, 1, 1)
+        elif post_day is None:
+            post_date_min = datetime.datetime(post_year, post_month, 1)
+            if post_month == 12:
+                post_date_max = datetime.datetime(post_year + 1, 1, 1)
+            else:
+                post_date_max = datetime.datetime(post_year, post_month + 1, 1)
+        else:
+            post_date_min = datetime.datetime(post_year, post_month, post_day)
+            post_date_max = post_date_min + datetime.timedelta(days=1)
+        _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
+        return {'pquery': pquery}
 class PostSlugSelector(Action):
     def generate(self, rsp, pquery, post_slug):
         _pquery(pquery).filter(Post.slug==post_slug)
