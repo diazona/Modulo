@@ -1,5 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
+import logging
 import neo_cgi
 import neo_cs
 import neo_util
@@ -15,6 +16,7 @@ class ClearsilverDataFile(FileResource):
     def generate(self, rsp, hdf=None):
         if hdf is None:
             hdf = neo_util.HDF()
+        logging.getLogger('modulo.templating.clearsilver').debug('loading file ' + self.filename)
         hdf.readFile(self.filename)
         return compact('hdf')
 
@@ -28,12 +30,29 @@ class ClearsilverTemplate(FileResource):
             hdf = neo_util.HDF()
         if cs is None:
             cs = neo_cs.CS(hdf)
+        logging.getLogger('modulo.templating.clearsilver').debug('loading file ' + self.filename)
         cs.parseFile(self.filename)
         return compact('hdf', 'cs')
 
     @classmethod
     def request_filename(cls, req):
-        return super(ClearsilverDataFile, cls).request_filename(req) + '.cst'
+        return super(ClearsilverTemplate, cls).request_filename(req) + '.cst'
+
+class ClearsilverLoadPath(Action):
+    @classmethod
+    def derive(cls, path):
+        return super(ClearsilverLoadPath, cls).derive(path=path)
+
+    def generate(self, rsp, hdf=None):
+        if hdf is None:
+            hdf = neo_util.HDF()
+        i = 0 # something from itertools would be better here but whatever
+        while True:
+            if not hdf.getValue('hdf.loadpaths.' + str(i), ''):
+                break
+            i += 1
+        hdf.setValue('hdf.loadpaths.' + str(i), self.path)
+        return compact('hdf')
 
 obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
@@ -45,7 +64,8 @@ class ClearsilverRendering(Action):
         load_hdf_cookie_vars(self.req, hdf)
         load_hdf_session_vars(self.req, hdf)
         load_hdf_common_vars(self.req, hdf)
-        hdf_insert_dict(hdf, kwargs, 'page')
+        print kwargs
+        hdf_insert_dict(hdf, kwargs, '')
         output = cs.render()
         if not output:
             raise EmptyTemplateError, 'Clearsilver template produced no output'
@@ -256,7 +276,7 @@ def hdf_insert_value(hdf, dvalue, path, fmt=str):
     else:
         hdf.setValue(path, fmt(dvalue))
 
-def hdf_insert_list(hdf, dlist, path='', fmt=lambda s: s):
+def hdf_insert_list(hdf, dlist, path='', fmt=str):
     '''Insert a list of values as children of an HDF node'''
     n = 0
     for elem in dlist:
@@ -264,12 +284,12 @@ def hdf_insert_list(hdf, dlist, path='', fmt=lambda s: s):
             hdf_insert_value(hdf, elem, '%s.%d' % (path, n), fmt)
             n += 1
 
-def hdf_insert_dict(hdf, ddict, path='', fmt=lambda s: s):
+def hdf_insert_dict(hdf, ddict, path='', fmt=str):
     '''Insert a dictionary of values as children of an HDF node'''
     for key in ddict.iterkeys():
         if ddict[key] != ddict:
-            key_path = '%s.%s' % (path, str(key).replace('.', '_'))
+            key_path = ('%s.%s' % (path, str(key))).lstrip('.')
             hdf_insert_value(hdf, ddict[key], key_path, fmt)
 
-def hdf_insert_model(hdf, dmodel, path='', fmt=lambda s: s):
+def hdf_insert_model(hdf, dmodel, path='', fmt=str):
     hdf_insert_dict(hdf, dmodel.to_dict(), path, fmt)

@@ -271,7 +271,7 @@ class AllActions(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                logging.getLogger('modulo').debug(reject_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
                 del req
                 return None
             elif isinstance(h, AllActions):
@@ -279,7 +279,7 @@ class AllActions(Action):
                 req = h.req
                 del h
             else:
-                logging.getLogger('modulo').debug(accept_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.append(h)
         if len(handlers) == 1:
             return handlers[0]
@@ -319,9 +319,9 @@ class AnyAction(Action):
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
-                logging.getLogger('modulo').debug(reject_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
             else:
-                logging.getLogger('modulo').debug(accept_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 return h
         return None
         # Note that we never call super(...).__new__(...) here. So there is no
@@ -331,8 +331,8 @@ class OptAction(Action):
     def __new__(cls, req):
         h = cls.handler_class.handle(req)
         if h is None:
-            logging.getLogger('modulo').debug(reject_fmt % (hc, req))
+            logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
             return cls.handle(req)
         else:
-            logging.getLogger('modulo').debug(accept_fmt % (hc, req))
+            logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
             return h

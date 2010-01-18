@@ -144,7 +144,12 @@ class ContentTypeAction(Action):
     even just returning a specific content type independent of the URL.'''
     @classmethod
     def content_type(cls, req):
-        return mimetypes.guess_type(req.url)
+        type_enc = mimetypes.guess_type(req.url)
+        type_string = str(type_enc[0])
+        if type_enc[1]:
+            type_string += ' (encoding=' + type_enc[1] + ')'
+        logging.getLogger('modulo.actions.standard').debug('Guessing content type ' + type_string)
+        return type_enc
 
     @classmethod
     def derive(cls, content_type, content_encoding=''):

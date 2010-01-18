@@ -5,6 +5,7 @@ import re
 import weakref
 from types import ClassType
 from modulo.actions import Action, AllActions, HashKey
+from modulo.actions import accept_fmt, reject_fmt
 from modulo.utilities import environ_next, uri_path
 from werkzeug import pop_path_info
 from werkzeug.exceptions import NotFound
@@ -126,18 +127,22 @@ class WerkzeugMapFilter(Action):
         except NotFound: # don't let this exception propagate because another resource might handle the request
             return None
         else:
-            logging.getLogger('modulo.actions.filters').debug('WerkzeugMapFilter got endpoint ' + str(endpoint))
+            logging.getLogger('modulo.actions.filters').debug('WerkzeugMapFilter got endpoint ' + repr(endpoint))
             if not isinstance(endpoint, ClassType) or not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
             h = endpoint.handle(req)
             if h is None:
                 return None
             arguments['map_adapter'] = map_adapter
-            instance = Action.__new__(AllActions, req)
-            instance.req = req
             argument_container = super(WerkzeugMapFilter, cls).__new__(cls, req)
             argument_container.parameters = arguments
-            instance.handlers = [argument_container, h]
+            if isinstance(h, AllActions):
+                instance = h
+                instance.handlers.insert(0, argument_container)
+            else:
+                instance = Action.__new__(AllActions, req)
+                instance.req = req
+                instance.handlers = [argument_container, h]
             return instance
 
     @classmethod
