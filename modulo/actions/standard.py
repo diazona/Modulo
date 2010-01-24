@@ -131,8 +131,8 @@ class NoCacheAction(Action):
 class DateAction(Action):
     '''An action which assigns the Date header to the response.
 
-    This should probably be chained at the beginning of the handler tree, as
-    it's required by HTTP/1.1 unless the server doesn't have a working clock.'''
+    WSGI-compliant servers will add this header if it's not provided by the
+    application, so it shouldn't really be necessary to use this action.'''
     def generate(self, rsp):
         rsp.date = datetime.utcnow()
 
