@@ -64,7 +64,6 @@ class ClearsilverRendering(Action):
         load_hdf_cookie_vars(self.req, hdf)
         load_hdf_session_vars(self.req, hdf)
         load_hdf_common_vars(self.req, hdf)
-        print kwargs
         hdf_insert_dict(hdf, kwargs, '')
         output = cs.render()
         if not output:
