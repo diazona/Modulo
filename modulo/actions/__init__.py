@@ -190,10 +190,25 @@ class Action(object):
 
     def __init__(self, req):
         '''Initializes the handler.
-
-        The constructor may alter req.environ.'''
+        
+        Any modifications to the request should be done in transform(), not the constructor.'''
         super(Action, self).__init__()
-        self.req = req
+        if self.__class__.transform.im_func is not Action.transform.im_func:
+            environ = req.environ.copy()
+            self.transform(environ)
+            self.req = req.__class__(environ)
+        else:
+            self.req = req
+
+    def transform(self, environ):
+        '''An opportunity for this Action to transform the request. If this method is
+        overridden, it will be called with the current WSGI environ as a parameter. It
+        can make any changes to the environ variables, and the resulting environment
+        will be used when asking further actions to handle the request. This can be
+        used to implement things like consuming path components.
+
+        By default this method just does nothing.'''
+        pass
 
     def authorized(self):
         '''Return True if the current request is authorized to access this action, False if not'''
@@ -267,7 +282,6 @@ class AllActions(Action):
 
     def __new__(cls, req):
         handlers = []
-        req = copy(req)
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
@@ -281,6 +295,7 @@ class AllActions(Action):
             else:
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.append(h)
+                req = h.req
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
@@ -289,8 +304,13 @@ class AllActions(Action):
             instance = super(AllActions, cls).__new__(cls, req)
             for h in handlers:
                 h.req = req
+            instance.req = req
             instance.handlers = handlers
             return instance
+
+    def __init__(self, req):
+        # it took a year to come up with this. don't ask.
+        pass
 
     def __del__(self):
         del self.handlers

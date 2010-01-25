@@ -87,12 +87,11 @@ class URIPrefixConsumer(URIPrefixFilter):
     Unlike URIPrefixFilter, an instance of URIPrefixConsumer "consumes" the part
     of the URI that it matches, so that part of the URI will not be visible to
     other handlers down the line.'''
-    def __init__(self, req):
-        super(URIPrefixConsumer, self).__init__(req)
+    def transform(self, environ):
         # kind of like Werkzeug's pop_path_info, but instead of moving one segment
         # over, we move over the entire matched prefix
-        req.environ['PATH_INFO'] = req.environ['PATH_INFO'][len(self.prefix):]
-        req.environ['SCRIPT_NAME'] += self.prefix
+        environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
+        environ['SCRIPT_NAME'] += self.prefix
 
 class WerkzeugMapFilter(Action):
     '''A filter which acts like a Werkzeug routing map.

@@ -117,6 +117,22 @@ class DirectoryResource(Action):
                             '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li><a href="${d}">${d}</a></li><% endfor %></ul></body></html>'
                             ).render(dirname=self.dirname, contents=contents)
 
+class DirectoryIndex(Action):
+    '''An action that alters the environment to insert a filename at the end of
+    the requested path.'''
+    index='index.html'
+    
+    @classmethod
+    def derive(cls, index):
+        return super(DirectoryIndex, cls).derive(index=index)
+        
+    @classmethod
+    def handles(cls, req):
+        return req.environ['PATH_INFO'].endswith('/')
+        
+    def transform(self, environ):
+        environ['PATH_INFO'] += self.index
+
 class NoCacheAction(Action):
     '''An action which sets the headers to disable caching by clients.'''
     def generate(self, rsp):
