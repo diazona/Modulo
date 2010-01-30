@@ -303,3 +303,54 @@ class Redirect(Action):
         warnings.warn('Python code functionality in string templates will be removed for security', FutureWarning)
         rsp.location = Template(self.location).render(kwargs) # TODO: create a more secure miniature template system
         rsp.status_code = self.status_code
+        
+class RequestDataAggregator(Action):
+    '''Transfers parameters from the request's POST data and query string to the
+    parameter list. This is also a common base class for the versions that take
+    POST data or GET data individually.'''
+    keys = None
+
+    @classmethod
+    def derive(cls, *args):
+        super(RequestDataAggregator, cls).derive(keys=args)
+
+    @classmethod
+    def handles(cls, req):
+        return len(cls.get_dict(req))
+
+    @classmethod
+    def get_dict(cls, req):
+        return req.values
+
+    @staticmethod
+    def list_or_value(v):
+        if len(v) == 1:
+            return v[0]
+        else:
+            return v
+
+    def generate(self, rsp):
+        d = self.get_dict(self.req)
+        if self.keys:
+            return dict((k, list_or_value(d[k])) for k in self.keys if k in d)
+        else:
+            return dict((k, list_or_value(v)) for (k,v) in d.iterlists())
+
+class PostDataAggregator(RequestDataAggregator):
+    '''Collects HTTP POST data from the request and adds it to the parameter list.
+    
+    It's probably not a good idea to use this when a large file is being uploaded,
+    since the whole file contents will be loaded into memory.'''
+    @classmethod
+    def handles(cls, req):
+        return req.method == 'POST' and len(req.form)
+
+    @classmethod
+    def get_dict(cls, req):
+        return req.form
+
+class GetDataAggregator(RequestDataAggregator):
+    '''Collects query string parameters from the request and adds them to the parameter list.'''
+    @classmethod
+    def get_dict(cls, req):
+        return req.args
