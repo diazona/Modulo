@@ -81,11 +81,13 @@ def _pquery(pquery=None):
 
 class PostIDSelector(Action):
     def generate(self, rsp, post_id, pquery=None):
-        _pquery(pquery).filter(Post.id==post_id)
+        pquery = _pquery(pquery)
+        pquery.filter(Post.id==post_id)
         return {'pquery': pquery}
 class PostDateSelector(Action):
     def generate(self, rsp, post_date_min, post_date_max, pquery=None):
-        _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
+        pquery = _pquery(pquery)
+        pquery.filter(post_date_min <= Post.date <= post_date_max)
         return {'pquery': pquery}
 class PostYearMonthDaySelector(Action):
     def generate(self, rsp, post_year, post_month=None, post_day=None, pquery=None):
@@ -101,27 +103,46 @@ class PostYearMonthDaySelector(Action):
         else:
             post_date_min = datetime.datetime(post_year, post_month, post_day)
             post_date_max = post_date_min + datetime.timedelta(days=1)
-        _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)
+        pquery = _pquery(pquery)
+        pquery.filter(post_date_min <= Post.date <= post_date_max)
         return {'pquery': pquery}
 class PostSlugSelector(Action):
     def generate(self, rsp, post_slug, pquery=None):
-        _pquery(pquery).filter(Post.slug==post_slug)
+        pquery = _pquery(pquery)
+        pquery.filter(Post.slug==post_slug)
         return {'pquery': pquery}
 class TagIDSelector(Action):
     def generate(self, rsp, tag_id, pquery=None):
-        _pquery(pquery).filter(Post.tags.any(id==tag_id))
+        pquery = _pquery(pquery)
+        pquery.filter(Post.tags.any(id==tag_id))
         return {'pquery': pquery}
 class TagNameSelector(Action):
     def generate(self, rsp, tag_name, pquery=None):
-        _pquery(pquery).filter(Post.tags.any(name=tag_name))
+        pquery = _pquery(pquery)
+        pquery.filter(Post.tags.any(name=tag_name))
         return {'pquery': pquery}
 class UserIDSelector(Action):
     def generate(self, rsp, user_id, pquery=None):
-        _pquery(pquery).filter(Post.user.has(id=user_id))
+        pquery = _pquery(pquery)
+        pquery.filter(Post.user.has(id=user_id))
         return {'pquery': pquery}
 class UserLoginSelector(Action):
     def generate(self, rsp, user_login, pquery=None):
-        _pquery(pquery).filter(Post.user.has(login=user_login))
+        pquery = _pquery(pquery)
+        pquery.filter(Post.user.has(login=user_login))
+        return {'pquery': pquery}
+
+class PostPaginator(Action):
+    page_size = 10
+    @classmethod
+    def derive(cls, page_size=10):
+        super(PostPaginator, cls).derive(page_size=page_size)
+    def generate(self, rsp, pquery=None, page=0, page_size=None):
+        if page_size is None:
+            page_size = self.page_size
+        
+        pquery = _pquery(pquery)
+        pquery.offset((page - 1) * page_size).limit(page_size)
         return {'pquery': pquery}
 
 class PostDisplay(Action):
@@ -141,22 +162,23 @@ class MultiPostDisplay(Action):
             posts = pquery.all()
         except NoResultFound:
             raise NotFound
+        post_count = pquery.count()
         del pquery # just a bit of premature optimization, for the fun of it
         pquery = None
-        return compact('posts', 'pquery')
+        return compact('posts', 'pquery', 'post_count')
 
 class PostSubmitAggregator(Action):
-    def generate(self, rsp):
+    def generate(self, rsp, post_title, post_text_src, post_tags=tuple(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
         post = Post()
-        post.title = self.req.form['post_title']
-        post.text = post.text_src = self.req.form['post_text_src']
+        post.title = post_title
+        post.text = post.text_src = post_text_src
         if post.title and post.text_src:
             post.date = datetime.datetime.now()
-            post.tags = self.req.form.getlist('post_tags')
-            post.draft = bool(self.req.form.get('post_draft', False))
-            post.category = self.req.form.get('post_category', None)
-            post.markup_mode = self.req.form.get('post_markup_mode', None)
-            post.summary = post.summary_src = self.req.form.get('post_summary_src', None)
+            post.tags = post_tags
+            post.draft = bool(post_draft)
+            post.category = post_category
+            post.markup_mode = post_markup_mode
+            post.summary = post.summary_src = post_summary_src
         return compact('post')
 
 class PostMarkupParser(Action):
@@ -187,13 +209,13 @@ class CommentForPostDisplay(Action):
         return compact('post_comments')
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, user=None):
+    def generate(self, rsp, comment_text_src, comment_subject, post_id, user=None):
         comment = Comment()
-        comment.text_src = comment.text = self.req.form.get('comment_text', '')
-        comment.subject = self.req.form.get('comment_subject', '')
+        comment.text_src = comment.text = comment_text_src
+        comment.subject = comment_subject
         if comment.text_src and comment.subject:
             comment.date = datetime.datetime.now()
-            comment.post = Post.query.filter(Post.id==self.req.form['post_id']).one()
+            comment.post = Post.query.filter(Post.id==post_id).one()
             comment.user = user
         return compact('comment')
 
@@ -221,12 +243,12 @@ class TagForPostDisplay(Action):
         return compact('post_tags')
 
 class TagSubmit(Action):
-    def generate(self, rsp):
+    def generate(self, rsp, tag_name):
         try:
-            tag = Tag.query.filter(Tag.name==self.req.args['tag_name']).one()
+            tag = Tag.query.filter(Tag.name==tag_name).one()
         except:
             tag = Tag()
-            tag.name = self.req.args['tag_name']
+            tag.name = tag_name
             session.commit(tag)
         return compact('tag')
 
@@ -266,10 +288,10 @@ class LinkbackHTMLParser(HTMLParser):
 
 class TrackbackAssembler(Action):
     '''Assembles the data submitted in a request for a trackback.'''
-    def generate(self, rsp, canonical_uri):
+    def generate(self, rsp, canonical_uri, url=None, title=None, excerpt=None, blog_name=None):
         linkback = Linkback()
         linkback.local_uri = canonical_uri
-        linkback.remote_url = self.req.args.get('url', None)
+        linkback.remote_url = url
         if not linkback.local_uri:
             linkback_error = 'No target URL specified'
         elif not linkback.remote_url:
@@ -278,9 +300,9 @@ class TrackbackAssembler(Action):
             linkback_error = 'HTTP POST method not used'
         else:
             linkback.local_host = self.req.host
-            linkback.remote_title = self.req.args.get('title', '')
-            linkback.remote_excerpt = self.req.args.get('excerpt', '')
-            linkback.remote_name = self.req.args.get('blog_name', '')
+            linkback.remote_title = title
+            linkback.remote_excerpt = excerpt
+            linkback.remote_name = blog_name
         return compact('linkback')
 
 class PingbackURIAssembler(Action):
