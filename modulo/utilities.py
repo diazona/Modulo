@@ -40,8 +40,8 @@ def environ_next(environ, keyfmt, value=True):
     environment, but modulo.3 is not, this function returns 3 and sets
     environ['modulo.3'] = value'''
     for n in count():
-        if keyfmt % n not in req.environ:
-            req.environ[keyfmt % n] = value
+        if keyfmt % n not in environ:
+            environ[keyfmt % n] = value
             return n
 
 def uri_path(environ):
