@@ -8,6 +8,7 @@ from elixir import Binary, DateTime, Entity, Field, ManyToOne, ManyToMany, OneTo
 from hashlib import sha256
 from hmac import HMAC
 from modulo.actions import Action
+from modulo.actions.standard import RequestDataAggregator
 from modulo.utilities import compact
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug import redirect
@@ -91,17 +92,15 @@ setup_all()
 # General stuff
 #---------------------------------------------------------------------------
 
-class UserDataAggregator(Action):
-    def generate(self, rsp):
-        d = {}
-        for field in ('user_login', 'user_password', 'user_email', 'user_status', 'user_name'):
-            if field in self.req.form:
-                d[field] = self.req.form[field]
-        return d
+class UserDataAggregator(RequestDataAggregator):
+    keys = ('user_login', 'user_password', 'user_email', 'user_status', 'user_name')
 
 class CurrentUserCheck(Action):
     def generate(self, rsp):
         uid = self.req.session.get('user_id', None)
+        logging.getLogger('modulo.addons.users').debug('current user id: ' + str(uid))
+        if uid is None:
+            return
         try:
             u = User.query.filter_by(id=uid).one()
         except NoResultFound:
@@ -155,6 +154,7 @@ class LoginCookie(Action):
 class LogoutProcessor(Action):
     def generate(self, rsp, user=None):
         if user:
+            logging.getLogger('modulo.addons.users').info('logging out user ' + user)
             rsp.delete_cookie('sessionid')
 
 #---------------------------------------------------------------------------
