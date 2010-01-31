@@ -19,7 +19,7 @@ from modulo.actions import all_of, any_of, opt
 from modulo.wrappers import Request, Response
 
 def run_everything(tree, request):
-    handler = tree.handle(request)
+    handler = tree.handle(request, {})
     if handler is None:
         raise NotFound()
     logging.getLogger('modulo').debug('\n'+str(handler))

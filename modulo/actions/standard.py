@@ -43,12 +43,12 @@ class FileResource(Action):
     @classmethod
     def derive(cls, filename):
         if isinstance(filename, (str, unicode)):
-            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req: filename))
+            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename))
         else:
             return super(FileResource, cls).derive(filename=filename)
 
     @classmethod
-    def filename(cls, req):
+    def filename(cls, req, params):
         return cls.request_filename(req)
 
     @staticmethod
@@ -60,13 +60,14 @@ class FileResource(Action):
         return os.path.join(docroot, req.path.lstrip('/'))
 
     @classmethod
-    def handles(cls, req):
-        logging.getLogger('modulo.actions.standard').debug('Checking file: ' + cls.filename(req))
-        return isfile(cls.filename(req))
+    def handles(cls, req, params):
+        filename = cls.filename(req, params)
+        logging.getLogger('modulo.actions.standard').debug('Checking file: ' + filename)
+        return isfile(filename)
 
-    def __init__(self, req):
-        super(FileResource, self).__init__(req)
-        self.filename = self.filename(req)
+    def __init__(self, req, params):
+        super(FileResource, self).__init__(req, params)
+        self.filename = self.filename(req, params)
 
     def last_modified(self):
         return datetime.utcfromtimestamp(os.stat(self.filename)[ST_MTIME])
@@ -88,7 +89,7 @@ class DirectoryResource(Action):
     structure, and provide a template (in your system of choice) to display the
     directory contents.'''
     @classmethod
-    def dirname(cls, req):
+    def dirname(cls, req, params):
         return cls.request_dirname(req)
 
     @staticmethod
@@ -100,12 +101,12 @@ class DirectoryResource(Action):
         return os.path.join(docroot, req.path.lstrip('/'))
 
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, parmas):
         return isdir(cls.dirname(req))
 
-    def __init__(self, req):
-        super(DirectoryResource, self).__init__(req)
-        self.dirname = self.dirname(req) # slight optimization
+    def __init__(self, req, params):
+        super(DirectoryResource, self).__init__(req, params)
+        self.dirname = self.dirname(req, params) # slight optimization
 
     def last_modified(self):
         return datetime.utcfromtimestamp(os.stat(self.dirname)[ST_MTIME])
@@ -127,7 +128,7 @@ class DirectoryIndex(Action):
         return super(DirectoryIndex, cls).derive(index=index)
         
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return req.environ['PATH_INFO'].endswith('/')
         
     def transform(self, environ):
@@ -171,8 +172,8 @@ class ContentTypeAction(Action):
     def derive(cls, content_type, content_encoding=''):
         return super(ContentTypeAction, cls).derive(content_type=lambda s, r: (content_type, content_encoding))
 
-    def __init__(self, req):
-        super(ContentTypeAction, self).__init__(req)
+    def __init__(self, req, params):
+        super(ContentTypeAction, self).__init__(req, params)
         self.content_type, self.content_encoding = self.content_type(req) # slight optimization
 
     def generate(self, rsp):
@@ -315,7 +316,7 @@ class RequestDataAggregator(Action):
         super(RequestDataAggregator, cls).derive(keys=args)
 
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return len(cls.get_dict(req))
 
     @classmethod
@@ -342,7 +343,7 @@ class PostDataAggregator(RequestDataAggregator):
     It's probably not a good idea to use this when a large file is being uploaded,
     since the whole file contents will be loaded into memory.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return req.method == 'POST' and len(req.form)
 
     @classmethod

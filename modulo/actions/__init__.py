@@ -125,9 +125,9 @@ class ActionMetaclass(type):
         else:
             return '%-22s   <standard>' % (self.__name__)
 
-    def handle(self, req):
+    def handle(self, req, params):
         # construct a new Action
-        h = super(ActionMetaclass, self).__call__(req)
+        h = super(ActionMetaclass, self).__call__(req, params)
         return h
 
 class Action(object):
@@ -168,14 +168,14 @@ class Action(object):
         code but there doesn't seem to be any way to reduce it further than this.'''
         return type('%s_%s' % (cls.__name__, hash_iterable(kwargs)), (cls,), kwargs)
 
-    def __new__(cls, req, **kwargs):
-        if cls.handles(req, **kwargs):
-            return super(Action, cls).__new__(cls, req, **kwargs)
+    def __new__(cls, req, params):
+        if cls.handles(req, params):
+            return super(Action, cls).__new__(cls, req, params)
         else:
             return None
 
     @classmethod
-    def handles(cls, req, **kwargs):
+    def handles(cls, req, params):
         '''Indicates whether this handler can handle the given request.
 
         If this method returns False, all operations on this handler for this
@@ -188,7 +188,7 @@ class Action(object):
         by default.'''
         return True
 
-    def __init__(self, req, **kwargs):
+    def __init__(self, req, params):
         '''Initializes the handler.
         
         Any modifications to the request should be done in transform(), not the constructor.'''
@@ -200,12 +200,15 @@ class Action(object):
         else:
             self.req = req
         if self.__class__.parameters.im_func is not Action.parameters.im_func:
-            params = self.parameters()
-            if params is not None:
-                assert isinstance(self.params, dict)
+            p = self.parameters()
+            if p is None:
                 self.params = params
+            else:
+                assert isinstance(p, dict)
+                self.params = params.copy()
+                self.params.update(p)
         else:
-            self.params = None
+            self.params = params
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
@@ -293,18 +296,15 @@ reject_fmt = '%-60s rejecting request %s'
 
 class AllActions(Action):
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         # We override handles() so that we can use super(...).__new__(...)
         # in the constructor, instead of having to resort to object.__new__(...)
         return True
 
-    def __new__(cls, req, **kwargs):
+    def __new__(cls, req, params):
         handlers = []
-        params = {}
-        params.update(kwargs)
         for hc in cls.handler_classes:
-            hargs, hkwargs = validate_arguments(hc.handle, [hc, req], params.copy(), True)
-            h = hc.handle(req, **hkwargs)
+            h = hc.handle(req, params)
             if h is None:
                 logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
                 del req
@@ -313,23 +313,19 @@ class AllActions(Action):
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.extend(h.handlers)
                 req = h.req
-                p = getattr(h, 'params', None)
-                if p:
-                    params.update(p)
+                params = h.params
                 del h
             else:
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.append(h)
                 req = h.req
-                p = getattr(h, 'params', None)
-                if p:
-                    params.update(p)
+                params = h.params
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
             return None
         else:
-            instance = super(AllActions, cls).__new__(cls, req)
+            instance = super(AllActions, cls).__new__(cls, req, params)
             for h in handlers:
                 h.req = req
             instance.req = req
@@ -337,7 +333,7 @@ class AllActions(Action):
             instance.handlers = handlers
             return instance
 
-    def __init__(self, req, **kwargs):
+    def __init__(self, req, params):
         # it took a year to come up with this. don't ask.
         pass
 
@@ -356,8 +352,7 @@ class AllActions(Action):
     def action_id(self):
         return hash_iterable(filter(None, (h.action_id() for h in self.handlers)))
 
-    def generate(self, rsp, **kwargs):
-        self.params.update(kwargs)
+    def generate(self, rsp):
         for h in self.handlers:
             hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
             p = h.generate(rsp, *(hargs[2:]), **hkwargs)
@@ -365,9 +360,9 @@ class AllActions(Action):
             self.params.update(hkwargs)
 
 class AnyAction(Action):
-    def __new__(cls, req):
+    def __new__(cls, req, params):
         for hc in cls.handler_classes:
-            h = hc.handle(req)
+            h = hc.handle(req, params)
             if h is None:
                 logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
             else:
@@ -378,11 +373,11 @@ class AnyAction(Action):
         # need to override handles().
 
 class OptAction(Action):
-    def __new__(cls, req):
-        h = cls.handler_class.handle(req)
+    def __new__(cls, req, params):
+        h = cls.handler_class.handle(req, params)
         if h is None:
             logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
-            return cls.handle(req)
+            return cls.handle(req, params)
         else:
             logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
             return h
