@@ -145,27 +145,47 @@ class Action(object):
     def derive(cls, **kwargs):
         '''Returns a subclass of this class with selected class variables set.
 
-        This is useful for certain subclasses which take configuration information
-        from class variables. If they were instance variables, you could create an
-        instance of the class and set the values of the variables to whatever you
-        want, but they're not instance variables, so in order to get custom behavior
-        we use subclasses instead of instances. This method will dynamically generate
-        a subclass of the current class with selected properties overridden. The
-        subclass will have a name of the form <class name>_<hash value> where
-        <class name> is the name of this class and <hash value> is some deterministic
-        function of the keys and values in args and kwargs. (The specific hash
-        function used is purposely undocumented and may change; in practice it
-        should probably never be necessary to know the hash generated)
+        You can think of derive() as a constructor of sorts. Normally, of course,
+        a constructor takes a class and some values and creates an instance
+        of the class based on those values. This method works similarly, except
+        that instead of creating an instance, it creates a subclass. By default,
+        each keyword argument passed to derive() will be copied over to a 
+        corresponding class variable of that subclass. For example,
+        Action.derive(foo='bar') returns a subclass of Action with a class
+        variable 'foo' that has a default value of 'bar'. Another way
+        to get the same effect would be
+        
+            class RandomActionSubclass(Action):
+                foo = 'bar'
+        
+        Some subclasses of Action override derive() to do something more
+        complicated with the given values, but they generally wind up as
+        class variables in some form.
+        
+        The subclass returned by derive() will have a name of the form
+        <class name>_<hash value> where <class name> is the name of the base
+        class and <hash value> is some deterministic function of the keys and
+        values passed in as keyword arguments. (The specific hash function used
+        is purposely undocumented and may change; in practice it should probably
+        never be necessary to know the hash generated.)
 
-        If you write a subclass of Action that uses class variables, I suggest
-        overriding derive like this to specify which properties your class takes/needs:
+        If you write a subclass of Action that requires this sort of customization,
+        and you don't have default values for the custom class variables, you can
+        override derive() as follows to specify which properties your class requires:
 
-            def derive(cls, <property1>, <property2>, ...):
-                return super(<class>, cls).derive(<property1>=<property1>, <property2>=<property2>, ...)
+            def derive(cls, <property1>, <property2>, ..., **kwargs):
+                return super(<class>, cls).derive(<property1>=<property1>, <property2>=<property2>, ..., **kwargs)
 
         Just replace property1, property2, etc. in all three spots with the name of
-        each property, and <class> with the name of the class. It's boilerplate
-        code but there doesn't seem to be any way to reduce it further than this.'''
+        each property, and <class> with the name of the class. Make sure to leave the
+        **kwargs in at the end, because your class might be subclassed yet again and
+        the subsubclass might want to have additional custom properties. It's boilerplate
+        code but there doesn't seem to be any way to reduce it further than this.
+        If you have sensible defaults for all your properties, you can just set those
+        defaults as class variables and then you don't have to override derive() at all.
+        
+        In any case, you really should document which variables derive() accepts or requires
+        for your class, if any.'''
         return type('%s_%s' % (cls.__name__, hash_iterable(kwargs)), (cls,), kwargs)
 
     def __new__(cls, req):
