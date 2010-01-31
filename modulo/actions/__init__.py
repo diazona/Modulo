@@ -258,9 +258,7 @@ class Action(object):
         its data from a cache if appropriate, rather than automatically running some
         expensive database access or such every time.
 
-        generate() may return a 2-element tuple containing a list and a dictionary,
-        which will be added to the args and kwargs (respectively) passed to the generate()
-        methods of the remaining actions.
+        generate() may return a dictionary which will be added to the parameter set.
 
         If this method throws any exception it will be trapped and a 500 error page
         will be generated.'''
@@ -330,6 +328,15 @@ class AllActions(Action):
 
     def __init__(self, req):
         # it took a year to come up with this. don't ask.
+        #
+        # Seriously though: when an object is constructed, Python always calls __init__ with
+        # the same parameters that were passed to __new__. But in this class, __new__ can
+        # replace the req parameter with a new request object. So in order to make sure the
+        # req field of an Action gets set with the new request object and not the original
+        # one that was passed to __new__, we need to set instance.req = req manually in __new__
+        # rather than putting that line here in __init__ where it would ordinarily go.
+        #
+        # Same for params.
         pass
 
     def __del__(self):

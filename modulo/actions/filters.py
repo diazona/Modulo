@@ -35,7 +35,7 @@ class URIFilter(Action):
     def generate(self, rsp):
         match = self.__match(self.req.environ['PATH_INFO'])
         if match.lastindex:
-            return match.groups(), match.groupdict()
+            return match.groupdict()
 
 class URIPrefixFilter(Action):
     '''A handler which only accepts requests with URIs starting with a string.
