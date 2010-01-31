@@ -177,7 +177,7 @@ class CreateUser(Action):
 
 class Verification(Action):
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return 'v' in req.form
     
     def generate(self, rsp, user_login, user_password):

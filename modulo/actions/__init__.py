@@ -125,9 +125,9 @@ class ActionMetaclass(type):
         else:
             return '%-22s   <standard>' % (self.__name__)
 
-    def handle(self, req):
+    def handle(self, req, params):
         # construct a new Action
-        h = super(ActionMetaclass, self).__call__(req)
+        h = super(ActionMetaclass, self).__call__(req, params)
         return h
 
 class Action(object):
@@ -188,14 +188,14 @@ class Action(object):
         for your class, if any.'''
         return type('%s_%s' % (cls.__name__, hash_iterable(kwargs)), (cls,), kwargs)
 
-    def __new__(cls, req):
-        if cls.handles(req):
-            return super(Action, cls).__new__(cls, req)
+    def __new__(cls, req, params):
+        if cls.handles(req, params):
+            return super(Action, cls).__new__(cls, req, params)
         else:
             return None
 
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         '''Indicates whether this handler can handle the given request.
 
         If this method returns False, all operations on this handler for this
@@ -208,7 +208,7 @@ class Action(object):
         by default.'''
         return True
 
-    def __init__(self, req):
+    def __init__(self, req, params):
         '''Initializes the handler.
         
         Any modifications to the request should be done in transform(), not the constructor.'''
@@ -219,6 +219,16 @@ class Action(object):
             self.req = req.__class__(environ)
         else:
             self.req = req
+        if self.__class__.parameters.im_func is not Action.parameters.im_func:
+            p = self.parameters()
+            if p is None:
+                self.params = params
+            else:
+                assert isinstance(p, dict)
+                self.params = params.copy()
+                self.params.update(p)
+        else:
+            self.params = params
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
@@ -228,6 +238,17 @@ class Action(object):
         used to implement things like consuming path components.
 
         By default this method just does nothing.'''
+        pass
+
+    def parameters(self):
+        '''Sets the values of any parameters that need to be added to the parameter set
+        by this action. This is called in the first phase of processing, when it's still
+        undetermined which actions exactly are going to be handling the request. So this
+        method shouldn't do anything expensive and shouldn't have any side effects.
+        (Operations with side effects belong in generate().)
+        
+        A subclass's __new__ method can also set its parameters manually by assigning to
+        the instance variable self.params.'''
         pass
 
     def authorized(self):
@@ -293,40 +314,44 @@ reject_fmt = '%-60s rejecting request %s'
 
 class AllActions(Action):
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         # We override handles() so that we can use super(...).__new__(...)
         # in the constructor, instead of having to resort to object.__new__(...)
         return True
 
-    def __new__(cls, req):
+    def __new__(cls, req, params):
         handlers = []
         for hc in cls.handler_classes:
-            h = hc.handle(req)
+            h = hc.handle(req, params)
             if h is None:
                 logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
                 del req
                 return None
             elif isinstance(h, AllActions):
+                logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.extend(h.handlers)
                 req = h.req
+                params = h.params
                 del h
             else:
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.append(h)
                 req = h.req
+                params = h.params
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
             return None
         else:
-            instance = super(AllActions, cls).__new__(cls, req)
+            instance = super(AllActions, cls).__new__(cls, req, params)
             for h in handlers:
                 h.req = req
             instance.req = req
+            instance.params = params
             instance.handlers = handlers
             return instance
 
-    def __init__(self, req):
+    def __init__(self, req, params):
         # it took a year to come up with this. don't ask.
         #
         # Seriously though: when an object is constructed, Python always calls __init__ with
@@ -354,17 +379,17 @@ class AllActions(Action):
     def action_id(self):
         return hash_iterable(filter(None, (h.action_id() for h in self.handlers)))
 
-    def generate(self, rsp, **kwargs):
+    def generate(self, rsp):
         for h in self.handlers:
-            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], kwargs.copy(), True)
+            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
             p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             hargs, hkwargs = check_params(p)
-            kwargs.update(hkwargs)
+            self.params.update(hkwargs)
 
 class AnyAction(Action):
-    def __new__(cls, req):
+    def __new__(cls, req, params):
         for hc in cls.handler_classes:
-            h = hc.handle(req)
+            h = hc.handle(req, params)
             if h is None:
                 logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
             else:
@@ -375,11 +400,11 @@ class AnyAction(Action):
         # need to override handles().
 
 class OptAction(Action):
-    def __new__(cls, req):
-        h = cls.handler_class.handle(req)
+    def __new__(cls, req, params):
+        h = cls.handler_class.handle(req, params)
         if h is None:
             logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
-            return cls.handle(req)
+            return cls.handle(req, params)
         else:
             logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
             return h

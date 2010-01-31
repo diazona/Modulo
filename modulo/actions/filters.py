@@ -19,7 +19,7 @@ class URIFilter(Action):
     This is primarily intended to be chained with other handlers to make them apply
     only to a particular URI path, not for subclassing.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return bool(cls.__match(req.environ['PATH_INFO']))
 
     @classmethod
@@ -32,7 +32,7 @@ class URIFilter(Action):
     def derive(cls, regex):
         return super(URIFilter, cls).derive(regex=regex)
 
-    def generate(self, rsp):
+    def parameters(self):
         match = self.__match(self.req.environ['PATH_INFO'])
         if match.lastindex:
             return match.groupdict()
@@ -46,7 +46,7 @@ class URIPrefixFilter(Action):
     This is primarily intended to be chained with other handlers to make them apply
     only to a particular URI path, not for subclassing.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         path = req.environ['PATH_INFO']
         if not path.startswith(cls.prefix):
             return False
@@ -68,7 +68,7 @@ class URISuffixFilter(Action):
     This is primarily intended to be chained with other handlers to make them apply
     only to a particular URI path, not for subclassing.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         path = req.environ['PATH_INFO']
         if not path.endswith(cls.suffix):
             return False
@@ -116,10 +116,10 @@ class WerkzeugMapFilter(Action):
         )
     '''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return True
 
-    def __new__(cls, req):
+    def __new__(cls, req, params):
         try:
             map_adapter = cls.routing_map.bind_to_environ(req)
             endpoint, arguments = map_adapter.match(req.path, req.method)
@@ -129,24 +129,17 @@ class WerkzeugMapFilter(Action):
             logging.getLogger('modulo.actions.filters').debug('WerkzeugMapFilter got endpoint ' + repr(endpoint))
             if not isinstance(endpoint, ClassType) or not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
-            h = endpoint.handle(req)
+            if arguments:
+                params = params.copy()
+                params.update(arguments)
+            h = endpoint.handle(req, params)
             if h is None:
                 return None
-            arguments['map_adapter'] = map_adapter
-            argument_container = super(WerkzeugMapFilter, cls).__new__(cls, req)
-            argument_container.parameters = arguments
-            if isinstance(h, AllActions):
-                instance = h
-                instance.handlers.insert(0, argument_container)
-            else:
-                instance = Action.__new__(AllActions, req)
-                instance.req = req
-                instance.handlers = [argument_container, h]
-            return instance
+            params['map_adapter'] = map_adapter
+            params.update(h.params)
+            h.params = params
+            return h
 
     @classmethod
     def derive(cls, routing_map, action_map=None):
         return super(WerkzeugMapFilter, cls).derive(routing_map=routing_map, action_map=action_map)
-
-    def generate(self, rsp):
-        return self.parameters

@@ -27,7 +27,7 @@ class BasicAuthentication(HTTPAuthentication):
 
     This is meant to be subclassed.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         auth = req.authorization
         return auth is not None and auth.type == 'basic'
 
@@ -36,7 +36,7 @@ class DigestAuthentication(HTTPAuthentication):
 
     This is meant to be subclassed.'''
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         auth = req.authorization
         return auth is not None and auth.type == 'digest'
 

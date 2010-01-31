@@ -21,7 +21,7 @@ class ClearsilverDataFile(FileResource):
         return compact('hdf')
 
     @classmethod
-    def request_filename(cls, req):
+    def filename(cls, req, params):
         return super(ClearsilverDataFile, cls).request_filename(req) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
@@ -35,7 +35,7 @@ class ClearsilverTemplate(FileResource):
         return compact('hdf', 'cs')
 
     @classmethod
-    def request_filename(cls, req):
+    def filename(cls, req, params):
         return super(ClearsilverTemplate, cls).request_filename(req) + '.cst'
 
 class ClearsilverLoadPath(Action):
