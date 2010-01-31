@@ -199,6 +199,13 @@ class Action(object):
             self.req = req.__class__(environ)
         else:
             self.req = req
+        if self.__class__.parameters.im_func is not Action.parameters.im_func:
+            params = self.parameters()
+            if params is not None:
+                assert isinstance(self.params, dict)
+                self.params = params
+        else:
+            self.params = None
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
@@ -208,6 +215,17 @@ class Action(object):
         used to implement things like consuming path components.
 
         By default this method just does nothing.'''
+        pass
+
+    def parameters(self):
+        '''Sets the values of any parameters that need to be added to the parameter set
+        by this action. This is called in the first phase of processing, when it's still
+        undetermined which actions exactly are going to be handling the request. So this
+        method shouldn't do anything expensive and shouldn't have any side effects.
+        (Operations with side effects belong in generate().)
+        
+        A subclass's __new__ method can also set its parameters manually by assigning to
+        the instance variable self.params.'''
         pass
 
     def authorized(self):
@@ -282,6 +300,7 @@ class AllActions(Action):
 
     def __new__(cls, req):
         handlers = []
+        params = {}
         for hc in cls.handler_classes:
             h = hc.handle(req)
             if h is None:
@@ -289,13 +308,20 @@ class AllActions(Action):
                 del req
                 return None
             elif isinstance(h, AllActions):
+                logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.extend(h.handlers)
                 req = h.req
+                p = getattr(h, 'params', None)
+                if p:
+                    params.update(p)
                 del h
             else:
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
                 handlers.append(h)
                 req = h.req
+                p = getattr(h, 'params', None)
+                if p:
+                    params.update(p)
         if len(handlers) == 1:
             return handlers[0]
         elif len(handlers) == 0:
@@ -305,6 +331,7 @@ class AllActions(Action):
             for h in handlers:
                 h.req = req
             instance.req = req
+            instance.params = params
             instance.handlers = handlers
             return instance
 
@@ -328,11 +355,12 @@ class AllActions(Action):
         return hash_iterable(filter(None, (h.action_id() for h in self.handlers)))
 
     def generate(self, rsp, **kwargs):
+        self.params.update(kwargs)
         for h in self.handlers:
-            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], kwargs.copy(), True)
+            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
             p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             hargs, hkwargs = check_params(p)
-            kwargs.update(hkwargs)
+            self.params.update(hkwargs)
 
 class AnyAction(Action):
     def __new__(cls, req):

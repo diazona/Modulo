@@ -32,7 +32,7 @@ class URIFilter(Action):
     def derive(cls, regex):
         return super(URIFilter, cls).derive(regex=regex)
 
-    def generate(self, rsp):
+    def parameters(self):
         match = self.__match(self.req.environ['PATH_INFO'])
         if match.lastindex:
             return match.groups(), match.groupdict()
@@ -134,19 +134,19 @@ class WerkzeugMapFilter(Action):
                 return None
             arguments['map_adapter'] = map_adapter
             argument_container = super(WerkzeugMapFilter, cls).__new__(cls, req)
-            argument_container.parameters = arguments
+            argument_container.params = arguments
             if isinstance(h, AllActions):
                 instance = h
                 instance.handlers.insert(0, argument_container)
+                instance.params = arguments.copy()
+                instance.params.update(h.params)
             else:
                 instance = Action.__new__(AllActions, req)
                 instance.req = req
+                instance.params = arguments
                 instance.handlers = [argument_container, h]
             return instance
 
     @classmethod
     def derive(cls, routing_map, action_map=None):
         return super(WerkzeugMapFilter, cls).derive(routing_map=routing_map, action_map=action_map)
-
-    def generate(self, rsp):
-        return self.parameters
