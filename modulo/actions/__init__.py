@@ -168,14 +168,14 @@ class Action(object):
         code but there doesn't seem to be any way to reduce it further than this.'''
         return type('%s_%s' % (cls.__name__, hash_iterable(kwargs)), (cls,), kwargs)
 
-    def __new__(cls, req):
-        if cls.handles(req):
-            return super(Action, cls).__new__(cls, req)
+    def __new__(cls, req, **kwargs):
+        if cls.handles(req, **kwargs):
+            return super(Action, cls).__new__(cls, req, **kwargs)
         else:
             return None
 
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, **kwargs):
         '''Indicates whether this handler can handle the given request.
 
         If this method returns False, all operations on this handler for this
@@ -188,7 +188,7 @@ class Action(object):
         by default.'''
         return True
 
-    def __init__(self, req):
+    def __init__(self, req, **kwargs):
         '''Initializes the handler.
         
         Any modifications to the request should be done in transform(), not the constructor.'''
@@ -298,11 +298,13 @@ class AllActions(Action):
         # in the constructor, instead of having to resort to object.__new__(...)
         return True
 
-    def __new__(cls, req):
+    def __new__(cls, req, **kwargs):
         handlers = []
         params = {}
+        params.update(kwargs)
         for hc in cls.handler_classes:
-            h = hc.handle(req)
+            hargs, hkwargs = validate_arguments(hc.handle, [hc, req], params.copy(), True)
+            h = hc.handle(req, **hkwargs)
             if h is None:
                 logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
                 del req
@@ -335,7 +337,7 @@ class AllActions(Action):
             instance.handlers = handlers
             return instance
 
-    def __init__(self, req):
+    def __init__(self, req, **kwargs):
         # it took a year to come up with this. don't ask.
         pass
 
