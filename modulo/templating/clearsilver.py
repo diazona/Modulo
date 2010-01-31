@@ -246,7 +246,7 @@ def load_hdf_session_vars(req, hdf):
     '''Initializes the session and loads its data into the HDF object.'''
     session = getattr(req, 'session', None) or {}
     for key in session.keys():
-        hdf.setValue('Session.' + key, req.session[key])
+        hdf.setValue('Session.' + key, str(req.session[key]))
 
 def load_hdf_common_vars(req, hdf):
     '''Load the HDF with values common to every page'''

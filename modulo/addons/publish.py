@@ -81,14 +81,10 @@ def _pquery(pquery=None):
 
 class PostIDSelector(Action):
     def generate(self, rsp, post_id, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.id==post_id)
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.id==post_id)}
 class PostDateSelector(Action):
     def generate(self, rsp, post_date_min, post_date_max, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(post_date_min <= Post.date <= post_date_max)
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)}
 class PostYearMonthDaySelector(Action):
     def generate(self, rsp, post_year, post_month=None, post_day=None, pquery=None):
         if post_month is None:
@@ -103,34 +99,22 @@ class PostYearMonthDaySelector(Action):
         else:
             post_date_min = datetime.datetime(post_year, post_month, post_day)
             post_date_max = post_date_min + datetime.timedelta(days=1)
-        pquery = _pquery(pquery)
-        pquery.filter(post_date_min <= Post.date <= post_date_max)
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)}
 class PostSlugSelector(Action):
     def generate(self, rsp, post_slug, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.slug==post_slug)
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.slug==post_slug)}
 class TagIDSelector(Action):
     def generate(self, rsp, tag_id, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.tags.any(id==tag_id))
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.tags.any(id==tag_id))}
 class TagNameSelector(Action):
     def generate(self, rsp, tag_name, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.tags.any(name=tag_name))
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.tags.any(name=tag_name))}
 class UserIDSelector(Action):
     def generate(self, rsp, user_id, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.user.has(id=user_id))
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.user.has(id=user_id))}
 class UserLoginSelector(Action):
     def generate(self, rsp, user_login, pquery=None):
-        pquery = _pquery(pquery)
-        pquery.filter(Post.user.has(login=user_login))
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).filter(Post.user.has(login=user_login))}
 
 class PostPaginator(Action):
     page_size = 10
@@ -141,9 +125,7 @@ class PostPaginator(Action):
         if page_size is None:
             page_size = self.page_size
         
-        pquery = _pquery(pquery)
-        pquery.offset((page - 1) * page_size).limit(page_size)
-        return {'pquery': pquery}
+        return {'pquery': _pquery(pquery).offset((page - 1) * page_size).limit(page_size)}
 
 class PostDisplay(Action):
     def generate(self, rsp, pquery):
@@ -168,7 +150,7 @@ class MultiPostDisplay(Action):
         return compact('posts', 'pquery', 'post_count')
 
 class PostSubmitAggregator(Action):
-    def generate(self, rsp, post_title, post_text_src, post_tags=tuple(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
+    def generate(self, rsp, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
         post = Post()
         post.title = post_title
         post.text = post.text_src = post_text_src
@@ -407,16 +389,16 @@ class EnablePingback(Action):
     '''Inserts the key pingback_url into the dictionary, and also sets the X-Pingback header.'''
     @classmethod
     def derive(cls, pingback_url):
-        return super(EnablePingback, cls).derive(pingback_url)
+        return super(EnablePingback, cls).derive(pingback_url=pingback_url)
 
     def generate(self, rsp):
         rsp.headers['X-Pingback'] = self.pingback_url
-        return {'pingback_url': pingback_url}
+        return {'pingback_url': self.pingback_url}
 
 class LinkbackDisplay(Action):
     '''Selects all linkback requests submitted for the current page.'''
     def generate(self, rsp, canonical_uri):
-        return {'linkbacks': Linkback.query.select_by(local_uri=canonical_uri)}
+        return {'linkbacks': Linkback.query.filter(Linkback.local_uri==canonical_uri).all()}
 
 class LinkbackAutodiscoveryParser(HTMLParser):
     '''Parses some content, like a blog post, and sends linkback requests to all 
@@ -493,9 +475,7 @@ class LinkbackAutodiscoveryParser(HTMLParser):
 
 class LinkbackAutodiscovery(Action):
     '''Runs a blog post through linkback autodiscovery'''
-    @classmethod
-    def derive(cls, blog_name=None):
-        return super(LinkbackAutodiscovery, cls).derive(blog_name=blog_name)
+    blog_name = None
 
     def generate(self, rsp, post):
         if not post.draft:

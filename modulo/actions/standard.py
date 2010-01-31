@@ -305,6 +305,12 @@ class Redirect(Action):
         rsp.location = Template(self.location).render(kwargs) # TODO: create a more secure miniature template system
         rsp.status_code = self.status_code
         
+def list_or_value(v):
+    if len(v) == 1:
+        return v[0]
+    else:
+        return v
+
 class RequestDataAggregator(Action):
     '''Transfers parameters from the request's POST data and query string to the
     parameter list. This is also a common base class for the versions that take
@@ -322,13 +328,6 @@ class RequestDataAggregator(Action):
     @classmethod
     def get_dict(cls, req):
         return req.values
-
-    @staticmethod
-    def list_or_value(v):
-        if len(v) == 1:
-            return v[0]
-        else:
-            return v
 
     def generate(self, rsp):
         d = self.get_dict(self.req)
