@@ -272,7 +272,7 @@ def hdf_insert_value(hdf, dvalue, path, fmt=str):
         hdf_insert_dict(hdf, dvalue, path, fmt)
     elif isinstance(dvalue, Entity):
         hdf_insert_model(hdf, dvalue, path, fmt)
-    else:
+    elif dvalue is not None:
         hdf.setValue(path, fmt(dvalue))
 
 def hdf_insert_list(hdf, dlist, path='', fmt=str):
@@ -291,4 +291,12 @@ def hdf_insert_dict(hdf, ddict, path='', fmt=str):
             hdf_insert_value(hdf, ddict[key], key_path, fmt)
 
 def hdf_insert_model(hdf, dmodel, path='', fmt=str):
-    hdf_insert_dict(hdf, dmodel.to_dict(), path, fmt)
+    # We have to put in some irritating special cases
+    # Use class name comparison to avoid loading the publish module if it's not really needed
+    deep = {}
+    if dmodel.__module__ == 'modulo.addons.publish':
+        if dmodel.__class__.__name__ == 'Post':
+            deep = {'user': {}}
+        elif dmodel.__class__.__name__ == 'Comment':
+            deep = {'user': {}}
+    hdf_insert_dict(hdf, dmodel.to_dict(deep=deep), path, fmt)
