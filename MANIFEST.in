@@ -1,0 +1,3 @@
+include modulo/setup/*.html
+include modulo/setup/*.css
+include modulo/setup/skeleton/*.tmpl
