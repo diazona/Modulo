@@ -142,7 +142,7 @@ class MultiPostDisplay(Action):
         return compact('posts', 'pquery', 'post_count')
 
 class PostSubmitAggregator(Action):
-    def generate(self, rsp, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
+    def generate(self, rsp, user, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
         post = Post()
         post.title = post_title
         post.text = post.text_src = post_text_src
@@ -153,6 +153,7 @@ class PostSubmitAggregator(Action):
             post.category = post_category
             post.markup_mode = post_markup_mode
             post.summary = post.summary_src = post_summary_src
+            post.user = user
         return compact('post')
 
 class PostMarkupParser(Action):
@@ -179,8 +180,8 @@ class CommentDisplay(Action):
 
 class CommentForPostDisplay(Action):
     def generate(self, rsp, post):
-        post_comments = Comment.query.filter(Comment.post==post).all()
-        return compact('post_comments')
+        comments = Comment.query.filter(Comment.post==post).all()
+        return compact('comments')
 
 class CommentSubmitAggregator(Action):
     def generate(self, rsp, comment_text_src, comment_subject, post_id, user=None):
@@ -191,7 +192,9 @@ class CommentSubmitAggregator(Action):
             comment.date = datetime.datetime.now()
             comment.post = Post.query.filter(Post.id==post_id).one()
             comment.user = user
-        return compact('comment')
+            return compact('comment')
+        else:
+            comment.delete()
 
 class CommentMarkupParser(Action):
     def generate(self, rsp, comment):
@@ -220,10 +223,9 @@ class TagSubmit(Action):
     def generate(self, rsp, tag_name):
         try:
             tag = Tag.query.filter(Tag.name==tag_name).one()
-        except:
+        except NoResultFound:
             tag = Tag()
             tag.name = tag_name
-            session.commit(tag)
         return compact('tag')
 
 #---------------------------------------------------------------------------
