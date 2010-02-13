@@ -57,14 +57,18 @@ class ClearsilverLoadPath(Action):
 obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
 
+def default_fmt(k, v):
+    return str(v)
+
 class ClearsilverRendering(Action):
+    fmt=staticmethod(default_fmt)
     def generate(self, rsp, hdf, cs, **kwargs):
         # emulate the Clearsilver CGI kit
         load_hdf_cgi_vars(self.req, hdf)
         load_hdf_cookie_vars(self.req, hdf)
         load_hdf_session_vars(self.req, hdf)
         load_hdf_common_vars(self.req, hdf)
-        hdf_insert_dict(hdf, kwargs, '')
+        hdf_insert_dict(hdf, kwargs, '', fmt=self.fmt)
         output = cs.render()
         if not output:
             raise EmptyTemplateError, 'Clearsilver template produced no output'
@@ -262,7 +266,7 @@ def hdf_iterate(hdf, path = None):
             yield hdf
             hdf = hdf.next()
 
-def hdf_insert_value(hdf, dvalue, path, fmt=str):
+def hdf_insert_value(hdf, dvalue, path, fmt=default_fmt):
     '''Insert a value as a string'''
     if path:
         path = path.rstrip('.')
@@ -273,9 +277,9 @@ def hdf_insert_value(hdf, dvalue, path, fmt=str):
     elif isinstance(dvalue, Entity):
         hdf_insert_model(hdf, dvalue, path, fmt)
     elif dvalue is not None:
-        hdf.setValue(path, fmt(dvalue))
+        hdf.setValue(path, fmt(path, dvalue))
 
-def hdf_insert_list(hdf, dlist, path='', fmt=str):
+def hdf_insert_list(hdf, dlist, path='', fmt=default_fmt):
     '''Insert a list of values as children of an HDF node'''
     n = 0
     for elem in dlist:
@@ -283,14 +287,14 @@ def hdf_insert_list(hdf, dlist, path='', fmt=str):
             hdf_insert_value(hdf, elem, '%s.%d' % (path, n), fmt)
             n += 1
 
-def hdf_insert_dict(hdf, ddict, path='', fmt=str):
+def hdf_insert_dict(hdf, ddict, path='', fmt=default_fmt):
     '''Insert a dictionary of values as children of an HDF node'''
     for key in ddict.iterkeys():
         if ddict[key] != ddict:
             key_path = ('%s.%s' % (path, str(key))).lstrip('.')
             hdf_insert_value(hdf, ddict[key], key_path, fmt)
 
-def hdf_insert_model(hdf, dmodel, path='', fmt=str):
+def hdf_insert_model(hdf, dmodel, path='', fmt=default_fmt):
     # We have to put in some irritating special cases
     # Use class name comparison to avoid loading the publish module if it's not really needed
     deep = {}
