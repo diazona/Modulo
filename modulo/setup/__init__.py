@@ -90,7 +90,7 @@ class ConfigLoader(Action):
 
 class CheckExists(Action):
     @classmethod
-    def handles(cls, req):
+    def handles(cls, req, params):
         return os.path.isfile(in_cwd('settings.py'))
 
     def generate(self, rsp):
