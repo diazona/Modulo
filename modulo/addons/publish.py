@@ -133,9 +133,8 @@ class PostDisplay(Action):
 class MultiPostDisplay(Action):
     def generate(self, rsp, pquery=None):
         pquery = _pquery(pquery)
-        try:
-            posts = pquery.all()
-        except NoResultFound:
+        posts = pquery.all()
+        if len(posts) == 0:
             raise NotFound
         post_count = pquery.count()
         del pquery # just a bit of premature optimization, for the fun of it
