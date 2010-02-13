@@ -93,6 +93,20 @@ class URIPrefixConsumer(URIPrefixFilter):
         environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
         environ['SCRIPT_NAME'] += self.prefix
 
+class URISuffixConsumer(URISuffixFilter):
+    '''A handler which only accepts requests with URIs ending with a string.
+
+    Unlike URISuffixFilter, an instance of URISuffixConsumer "consumes" the part
+    of the URI that it matches, so that part of the URI will not be visible to
+    other handlers down the line.
+    
+    Unlike URIPrefixFilter, the removed part of the path is NOT appended to
+    req.environ['SCRIPT_NAME'].'''
+    def transform(self, environ):
+        # kind of like Werkzeug's pop_path_info, but instead of moving one segment
+        # over, we move over the entire matched prefix
+        environ['PATH_INFO'] = environ['PATH_INFO'][:-len(self.suffix)]
+
 class WerkzeugMapFilter(Action):
     '''A filter which acts like a Werkzeug routing map.
 
