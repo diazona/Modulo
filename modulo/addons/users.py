@@ -154,7 +154,7 @@ class LoginCookie(Action):
 class LogoutProcessor(Action):
     def generate(self, rsp, user=None):
         if user:
-            logging.getLogger('modulo.addons.users').info('logging out user ' + user)
+            logging.getLogger('modulo.addons.users').info('logging out user ' + str(user))
             rsp.delete_cookie('sessionid')
 
 #---------------------------------------------------------------------------
