@@ -3,6 +3,7 @@
 '''Actions related to content publication, syndication, etc.'''
 
 import datetime
+import logging
 import modulo.database
 from elixir import session, setup_all
 from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
@@ -114,11 +115,29 @@ class PostPaginator(Action):
     def derive(cls, page_size=10):
         return super(PostPaginator, cls).derive(page_size=page_size)
 
-    def generate(self, rsp, pquery=None, page=0, page_size=None):
+    def generate(self, rsp, pquery=None, page=None, page_size=None):
         if page_size is None:
             page_size = self.page_size
-        
-        return {'pquery': _pquery(pquery).offset((page - 1) * page_size).limit(page_size)}
+        if page is None:
+            page = 1
+        else:
+            page = int(page)
+            logging.getLogger('modulo.addons.publish').debug('Displaying page ' + str(page))
+        pquery = _pquery(pquery)
+        post_count = pquery.count()
+        return {'pquery': pquery.offset((page - 1) * page_size).limit(page_size), 'page_size': page_size, 'page': page, 'post_count': post_count}
+
+class PostPaginationData(Action):
+    def generate(self, rsp, post_count, page_size, page=1):
+        d = {}
+        page = int(page)
+        pages = max(0, post_count - 1) // page_size + 1 # this is ceil(post_count / page_size)
+        d['pages'] = pages
+        if page < pages:
+            d['next_page'] = page + 1
+        if page > 1:
+            d['prev_page'] = page - 1
+        return d
 
 class PostDisplay(Action):
     def generate(self, rsp, pquery):
@@ -136,10 +155,9 @@ class MultiPostDisplay(Action):
         posts = pquery.all()
         if len(posts) == 0:
             raise NotFound
-        post_count = pquery.count()
         del pquery # just a bit of premature optimization, for the fun of it
         pquery = None
-        return compact('posts', 'pquery', 'post_count')
+        return compact('posts', 'pquery')
 
 class PostSubmitAggregator(Action):
     def generate(self, rsp, user, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
