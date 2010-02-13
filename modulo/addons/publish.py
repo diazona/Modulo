@@ -112,7 +112,8 @@ class PostPaginator(Action):
     page_size = 10
     @classmethod
     def derive(cls, page_size=10):
-        super(PostPaginator, cls).derive(page_size=page_size)
+        return super(PostPaginator, cls).derive(page_size=page_size)
+
     def generate(self, rsp, pquery=None, page=0, page_size=None):
         if page_size is None:
             page_size = self.page_size

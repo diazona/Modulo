@@ -161,7 +161,7 @@ class ContentTypeAction(Action):
     even just returning a specific content type independent of the URL.'''
     @classmethod
     def content_type(cls, req):
-        type_enc = mimetypes.guess_type(req.url)
+        type_enc = mimetypes.guess_type(req.base_url)
         type_string = str(type_enc[0])
         if type_enc[1]:
             type_string += ' (encoding=' + type_enc[1] + ')'
@@ -319,7 +319,7 @@ class RequestDataAggregator(Action):
 
     @classmethod
     def derive(cls, *args):
-        super(RequestDataAggregator, cls).derive(keys=args)
+        return super(RequestDataAggregator, cls).derive(keys=args)
 
     @classmethod
     def handles(cls, req, params):
