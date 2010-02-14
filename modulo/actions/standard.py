@@ -41,25 +41,23 @@ class FileResource(Action):
     The point of the defaults being set up as they are is that FileResource by
     itself can be used as a static file server (albeit an inefficient one).'''
     @classmethod
-    def derive(cls, filename=None, **kwargs):
+    def derive(cls, filename=None, search_path=None, **kwargs):
         if filename is None:
-            return super(FileResource, cls).derive(**kwargs)
+            return super(FileResource, cls).derive(search_path=search_path, **kwargs)
         elif isinstance(filename, (str, unicode)):
-            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), **kwargs)
+            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), search_path=search_path, **kwargs)
         else:
-            return super(FileResource, cls).derive(filename=filename, **kwargs)
+            return super(FileResource, cls).derive(filename=filename, search_path=search_path, **kwargs)
 
     @classmethod
     def filename(cls, req, params):
-        return cls.request_filename(req)
-
-    @staticmethod
-    def request_filename(req):
-        if 'DOCUMENT_ROOT' in req.environ:
-            docroot = req.environ['DOCUMENT_ROOT']
-        else:
-            docroot = os.getcwd()
-        return os.path.join(docroot, req.path.lstrip('/'))
+        search_path = getattr(cls, 'search_path', None)
+        if search_path is None:
+            if 'DOCUMENT_ROOT' in req.environ:
+                search_path = req.environ['DOCUMENT_ROOT']
+            else:
+                search_path = os.getcwd()
+        return os.path.join(search_path, req.path.lstrip('/'))
 
     @classmethod
     def handles(cls, req, params):

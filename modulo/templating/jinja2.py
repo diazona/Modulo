@@ -24,31 +24,14 @@ class JinjaTemplate(Action):
 
 class JinjaFilesystemTemplate(FileResource):
     @classmethod
-    def derive(cls, search_path, template_name=None, **kwargs):
-        if template_name:
-            # Don't call FileResource.derive, instead call (superclass of FileResource).derive
-            # because we have filename() implemented as a proper class method, we don't need
-            # to pass it in to derive()
-            return super(FileResource, cls).derive(env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path, template_name=template_name)
-        else:
-            return super(FileResource, cls).derive(env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path)
-
-    @classmethod
-    def filename(cls, req, params):
-        if callable(cls.template_name):
-            return join(cls.search_path, cls.template_name(req, params))
-        else:
-            return join(cls.search_path, cls.template_name)
-            
-    @classmethod
-    def template_name(cls, req, params):
-        return req.path.lstrip('/')
-        
-    def __init__(self, req, params):
-        super(JinjaFilesystemTemplate, self).__init__(req, params)
-        self.template_name = self.template_name(req, params)
+    def derive(cls, search_path, **kwargs):
+        return super(JinjaFilesystemTemplate, cls).derive(env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path, **kwargs)
 
     def generate(self, rsp, **kwargs):
+        # Because Jinja handles the search path internally, we have to strip it off here
+        template = self.filename
+        if template.startswith(self.search_path):
+            template = template[len(self.search_path):].lstrip('/')
         template_data = self.req.environ.copy()
         template_data.update(kwargs)
-        rsp.response = self.env.get_template(self.template_name).generate(template_data)
+        rsp.response = self.env.get_template(template).generate(template_data)

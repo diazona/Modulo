@@ -22,7 +22,7 @@ class ClearsilverDataFile(FileResource):
 
     @classmethod
     def filename(cls, req, params):
-        return super(ClearsilverDataFile, cls).request_filename(req) + '.hdf'
+        return super(ClearsilverDataFile, cls).filename(req, params) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
     def generate(self, rsp, hdf=None, cs=None):
@@ -36,7 +36,7 @@ class ClearsilverTemplate(FileResource):
 
     @classmethod
     def filename(cls, req, params):
-        return super(ClearsilverTemplate, cls).request_filename(req) + '.cst'
+        return super(ClearsilverTemplate, cls).filename(req, params) + '.cst'
 
 class ClearsilverLoadPath(Action):
     @classmethod

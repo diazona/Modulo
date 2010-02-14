@@ -36,11 +36,11 @@ def make_app():
         ])) | all_of(
             any_of(
                 all_of(
-                    ClearsilverTemplate(filename=ClearsilverTemplate.ext_request_filename),
-                    ClearsilverDataFile(filename=ClearsilverDataFile.ext_request_filename)
+                    ClearsilverTemplate,
+                    ClearsilverDataFile
                 ),
-                ClearsilverTemplate(filename=ClearsilverTemplate.ext_request_filename),
-                ClearsilverDataFile(filename=ClearsilverDataFile.ext_request_filename)
+                ClearsilverTemplate,
+                ClearsilverDataFile
             ),
             ClearsilverRendering
         ) | all_of(
