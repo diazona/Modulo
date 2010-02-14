@@ -41,11 +41,13 @@ class FileResource(Action):
     The point of the defaults being set up as they are is that FileResource by
     itself can be used as a static file server (albeit an inefficient one).'''
     @classmethod
-    def derive(cls, filename, **kwargs):
-        if isinstance(filename, (str, unicode)):
-            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename))
+    def derive(cls, filename=None, **kwargs):
+        if filename is None:
+            return super(FileResource, cls).derive(**kwargs)
+        elif isinstance(filename, (str, unicode)):
+            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), **kwargs)
         else:
-            return super(FileResource, cls).derive(filename=filename)
+            return super(FileResource, cls).derive(filename=filename, **kwargs)
 
     @classmethod
     def filename(cls, req, params):
