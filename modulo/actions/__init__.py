@@ -403,8 +403,8 @@ class OptAction(Action):
     def __new__(cls, req, params):
         h = cls.handler_class.handle(req, params)
         if h is None:
-            logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
-            return cls.handle(req, params)
+            logging.getLogger('modulo.actions').debug(reject_fmt % (cls.handler_class, req))
+            return Action.handle(req, params)
         else:
-            logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
+            logging.getLogger('modulo.actions').debug(accept_fmt % (cls.handler_class, req))
             return h
