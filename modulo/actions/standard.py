@@ -354,3 +354,12 @@ class GetDataAggregator(RequestDataAggregator):
     @classmethod
     def get_dict(cls, req):
         return req.args
+
+class Statics(Action):
+    '''Injects a set of static parameters into the parameter list.'''
+    @classmethod
+    def derive(cls, **kwargs):
+        return super(Statics, cls).derive(params=kwargs)
+    
+    def parameters(self):
+        return self.params
