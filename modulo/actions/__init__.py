@@ -115,7 +115,7 @@ class ActionMetaclass(type):
     def __call__(self, *args, **kwargs):
         # create a subclass
         d = self.derive(*args, **kwargs)
-        assert d is not None
+        assert d is not None, str(self) + '.derive() returned None (perhaps the programmer forgot a return statement)'
         return d
 
     def __str__(self):
