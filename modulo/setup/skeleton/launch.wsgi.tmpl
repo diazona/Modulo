@@ -1,3 +1,5 @@
+# -*- coding: iso-8859-1 -*-
+
 '''The WSGI application script file.
 
 If using Apache/mod_wsgi, this is the file you specify in the
@@ -7,6 +9,13 @@ module-level variable called "application" which contains the
 actual WSGI application. If you like, you can use the WSGICallableObject
 directive to change that name, and then change the name of the variable
 in this file to match.'''
+
+import os, os.path, site, sys
+
+thisdir = os.path.dirname(__file__)
+
+if thisdir not in sys.path:
+    site.addsitedir(thisdir)
 
 from app import create_application
 
