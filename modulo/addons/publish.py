@@ -12,6 +12,7 @@ from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
 from modulo.utilities import compact, uri_path
 from HTMLParser import HTMLParser
+from sqlalchemy import desc
 from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import BadRequest, NotFound
@@ -108,6 +109,15 @@ class UserIDSelector(Action):
 class UserLoginSelector(Action):
     def generate(self, rsp, user_login, pquery=None):
         return {'pquery': _pquery(pquery).filter(Post.user.has(login=user_login))}
+
+class PostDateOrder(Action):
+    ascending = False # I figure False is a reasonable default
+    def generate(self, rsp, pquery=None):
+        if self.ascending:
+            return {'pquery': _pquery(pquery).order_by(Post.date)}
+        else:
+            return {'pquery': _pquery(pquery).order_by(desc(Post.date))}
+        
 
 class PostPaginator(Action):
     page_size = 10
