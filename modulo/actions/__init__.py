@@ -232,10 +232,13 @@ class Action(object):
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
-        overridden, it will be called with the current WSGI environ as a parameter. It
-        can make any changes to the environ variables, and the resulting environment
-        will be used when asking further actions to handle the request. This can be
-        used to implement things like consuming path components.
+        overridden, it will be called with a copy of the current WSGI environ as a
+        parameter. It can make any changes to the environ variables, and the resulting
+        environment will be used when asking further actions to handle the request.
+        This can be used to implement things like consuming path components.
+
+        Changes can be made in place to the environ parameter, it's not necessary to
+        return the new environment from this method.
 
         By default this method just does nothing.'''
         pass
