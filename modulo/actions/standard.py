@@ -363,3 +363,11 @@ class Statics(Action):
     
     def parameters(self):
         return self.params
+        
+class DocumentRoot(Action):
+    @classmethod
+    def derive(cls, docroot, **kwargs):
+        return super(DocumentRoot, cls).derive(docroot=docroot, **kwargs)
+
+    def transform(self, environ):
+        environ['DOCUMENT_ROOT'] = self.docroot
