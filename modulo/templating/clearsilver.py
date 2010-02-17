@@ -13,6 +13,7 @@ from modulo.templating import EmptyTemplateError
 from modulo.utilities import compact, environ_next
 
 class ClearsilverDataFile(FileResource):
+    '''An Action that loads a Clearsilver data file into the HDF.'''
     def generate(self, rsp, hdf=None):
         if hdf is None:
             hdf = neo_util.HDF()
@@ -23,6 +24,46 @@ class ClearsilverDataFile(FileResource):
     @classmethod
     def filename(cls, req, params):
         return super(ClearsilverDataFile, cls).filename(req, params) + '.hdf'
+
+class _hdfproxy(object):
+    def __init__(self, parent, hdf):
+        self.__name = hdf.name()
+        if hdf.value():
+            self.__value = hdf.value()
+        self.__children = [_hdfproxy(self, h) for h in hdf_iterate(hdf)]
+        self.__child_index = dict((h.__name, h) for h in self.__children)
+    def __str__(self):
+        return self.__value
+    def __unicode__(self):
+        return unicode(self.__value)
+    def __repr__(self):
+        return self.__name + ' = ' + repr(self.__value) + '{\n' + '\n'.join(repr(n) for n in self) + '}\n'
+    def __iter__(self):
+        return iter(self.__children)
+    def __contains__(self, name):
+        return name in self.__child_index
+    def __getitem__(self, name):
+        return str(self.__child_index[name])
+    def __getattr__(self, name):
+        try:
+            return str(self.__child_index[name])
+        except KeyError:
+            raise AttributeError(name)
+
+class HDFDataFile(FileResource):
+    '''An Action that loads an HDF data file into the parameter list.'''
+    def generate(self, rsp):
+        hdf = neo_util.HDF() # temp object
+        logging.getLogger('modulo.templating.clearsilver').debug('loading file ' + self.filename)
+        hdf.readFile(self.filename)
+        data = {}
+        for node in hdf_iterate(hdf):
+            data[node.name()] = _hdfproxy(None, node)
+        return data
+
+    @classmethod
+    def filename(cls, req, params):
+        return super(HDFDataFile, cls).filename(req, params) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
     def generate(self, rsp, hdf=None, cs=None):
