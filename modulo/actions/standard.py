@@ -42,9 +42,10 @@ class FileResource(Action):
     itself can be used as a static file server (albeit an inefficient one).'''
     @classmethod
     def derive(cls, filename=None, search_path=None, **kwargs):
+        # search_path can be any iterable of strings, or a plain string
         if filename is None:
             return super(FileResource, cls).derive(search_path=search_path, **kwargs)
-        elif isinstance(filename, (str, unicode)):
+        elif isinstance(filename, basestring):
             return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), search_path=search_path, **kwargs)
         else:
             return super(FileResource, cls).derive(filename=filename, search_path=search_path, **kwargs)
@@ -52,12 +53,27 @@ class FileResource(Action):
     @classmethod
     def filename(cls, req, params):
         search_path = getattr(cls, 'search_path', None)
-        if search_path is None:
+        fn = req.path.lstrip('/')
+        if isinstance(search_path, basestring):
+            return cls.__filename(search_path, fn, req)
+        else:
+            try:
+                for sp in search_path:
+                    fnfull = cls.__filename(sp, fn, req)
+                    if os.path.isfile(fnfull):
+                        return fnfull
+            except TypeError:
+                return cls.__filename(search_path, fn, req)
+            return cls.__filename(None, fn, req)
+
+    @staticmethod
+    def __filename(sp, fn, req):
+        if sp is None:
             if 'DOCUMENT_ROOT' in req.environ:
-                search_path = req.environ['DOCUMENT_ROOT']
+                sp = req.environ['DOCUMENT_ROOT']
             else:
-                search_path = os.getcwd()
-        return os.path.join(search_path, req.path.lstrip('/'))
+                sp = os.getcwd()
+        return os.path.join(sp, fn)
 
     @classmethod
     def handles(cls, req, params):
