@@ -47,17 +47,27 @@ class URIPrefixFilter(Action):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req, params):
-        path = req.environ['PATH_INFO']
-        if not path.startswith(cls.prefix):
-            return False
-        if cls.prefix.endswith('/'):
-            return True
-        url_prefix = path[len(cls.prefix):]
-        return len(url_prefix) == 0 or url_prefix.startswith('/')
+        return cls.__prefix(req.environ['PATH_INFO']) != False
+        
+    @classmethod
+    def __prefix(cls, path):
+        for prefix in cls.prefixes:
+            if path.startswith(prefix):
+                if prefix.endswith('/'):
+                    return prefix
+                else:
+                    url_prefix = path[len(prefix):]
+                    if len(url_prefix) == 0 or url_prefix.startswith('/'):
+                        return prefix
+        return False
+
+    def __init__(self, req, params):
+        super(URIPrefixFilter, self).__init__(req, params)
+        self.prefix = self.__prefix(req.environ['PATH_INFO'])
 
     @classmethod
-    def derive(cls, prefix):
-        return super(URIPrefixFilter, cls).derive(prefix=prefix)
+    def derive(cls, *prefixes, **kwargs):
+        return super(URIPrefixFilter, cls).derive(prefixes=prefixes, **kwargs)
 
 class URISuffixFilter(Action):
     '''A handler which only accepts requests with URIs ending with a string.
@@ -69,17 +79,27 @@ class URISuffixFilter(Action):
     only to a particular URI path, not for subclassing.'''
     @classmethod
     def handles(cls, req, params):
-        path = req.environ['PATH_INFO']
-        if not path.endswith(cls.suffix):
-            return False
-        if cls.suffix.startswith('.') or cls.suffix.startswith('/'):
-            return True
-        url_suffix = path[:-len(cls.suffix)]
-        return len(url_suffix) == 0 or url_suffix.endswith('/')
+        return cls.__suffix(req.environ['PATH_INFO']) != False
+        
+    @classmethod
+    def __suffix(cls, path):
+        for suffix in cls.suffixes:
+            if path.endswith(suffix):
+                if suffix.startswith('.') or suffix.startswith('/'):
+                    return suffix
+                else:
+                    url_suffix = path[:-len(suffix)]
+                    if len(url_suffix) == 0 or url_suffix.endswith('/'):
+                        return suffix
+        return False
+
+    def __init__(self, req, params):
+        super(URISuffixFilter, self).__init__(req, params)
+        self.suffix = self.__suffix(req.environ['PATH_INFO'])
 
     @classmethod
-    def derive(cls, suffix):
-        return super(URISuffixFilter, cls).derive(suffix=suffix)
+    def derive(cls, *suffixes, **kwargs):
+        return super(URISuffixFilter, cls).derive(suffixes=suffixes, **kwargs)
 
 class URIPrefixConsumer(URIPrefixFilter):
     '''A handler which only accepts requests with URIs starting with a string.
