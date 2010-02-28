@@ -15,7 +15,8 @@ from modulo.utilities import func_update
 from os.path import isdir, isfile
 from stat import ST_MTIME
 from werkzeug import Template
-from werkzeug.utils import http_date, wrap_file
+from werkzeug import wrap_file
+from werkzeug.utils import http_date
 
 class FileResource(Action):
     '''A base class for an action that reads the contents of a file.
