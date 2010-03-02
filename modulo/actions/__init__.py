@@ -31,6 +31,7 @@ from os.path import dirname, isfile, join, splitext
 from stat import ST_MTIME
 from werkzeug import validate_arguments
 from werkzeug import BaseRequest
+from werkzeug.exceptions import NotFound
 
 __all__ = ['all_of', 'any_of', 'opt', 'Action']
 
@@ -140,6 +141,13 @@ class Action(object):
     response that winds up being returned to the client is a composite thing put
     together from different parts provided by different handlers.'''
     __metaclass__ = ActionMetaclass
+    
+    # This attribute is a bit of a hack: when set to true, it tells AllActions to
+    # catch and ignore any NotFound exception raised by the generate() method.
+    # This is because some actions indicate that their required resource is not
+    # available by raising NotFound from generate() instead of returning False
+    # from handles(), but we need to have a way to skip them when they're optional.
+    _opt = False
 
     @classmethod
     def derive(cls, **kwargs):
@@ -332,6 +340,9 @@ class AllActions(Action):
                 return None
             elif isinstance(h, AllActions):
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
+                if h._opt:
+                    for hndl in h.handlers:
+                        hndl._opt = True
                 handlers.extend(h.handlers)
                 req = h.req
                 params = h.params
@@ -385,7 +396,11 @@ class AllActions(Action):
     def generate(self, rsp):
         for h in self.handlers:
             hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
-            p = h.generate(rsp, *(hargs[2:]), **hkwargs)
+            try:
+                p = h.generate(rsp, *(hargs[2:]), **hkwargs)
+            except NotFound:
+                if not h._opt:
+                    raise
             hargs, hkwargs = check_params(p)
             self.params.update(hkwargs)
 
@@ -410,4 +425,5 @@ class OptAction(Action):
             return Action.handle(req, params)
         else:
             logging.getLogger('modulo.actions').debug(accept_fmt % (cls.handler_class, req))
+            h._opt = True
             return h
