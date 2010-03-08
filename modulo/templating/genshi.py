@@ -25,6 +25,7 @@ class GenshiFilesystemTemplate(FileResource):
             return super(GenshiFilesystemTemplate, cls).derive(filename=filename, **kwargs)
 
     def generate(self, rsp, **kwargs):
+        global _loader
         template_data = self.req.environ.copy()
         template_data.update(kwargs)
         try:
