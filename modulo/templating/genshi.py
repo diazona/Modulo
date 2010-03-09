@@ -35,4 +35,4 @@ class GenshiFilesystemTemplate(FileResource):
                 _loader = TemplateLoader()
             loader = _loader
         template = loader.load(self.filename)
-        rsp.response = template.generate(**template_data).render(getattr(self, 'mode', 'html'), doctype=getattr(self, 'doctype', 'html'))
+        rsp.data = template.generate(**template_data).render(getattr(self, 'mode', 'html'), doctype=getattr(self, 'doctype', 'html'))
