@@ -12,7 +12,7 @@ import warnings
 from datetime import datetime
 from modulo.actions import Action
 from modulo.utilities import func_update
-from os.path import isdir, isfile
+from os.path import isabs, isdir, isfile
 from stat import ST_MTIME
 from werkzeug import Template
 from werkzeug import wrap_file
@@ -47,14 +47,20 @@ class FileResource(Action):
         if filename is None:
             return super(FileResource, cls).derive(search_path=search_path, **kwargs)
         elif isinstance(filename, basestring):
-            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), search_path=search_path, **kwargs)
+            if isabs(filename):
+                # In this case the filename is completely specified so we can replace the builtin filename() method
+                return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), search_path=search_path, **kwargs)
+            else:
+                # filename is a relative path, so don't replace the builtin filename
+                return super(FileResource, cls).derive(rel_filename=filename, search_path=search_path, **kwargs)
         else:
+            # Presumably filename is a callable which should replace the builtin filename() method
             return super(FileResource, cls).derive(filename=filename, search_path=search_path, **kwargs)
 
     @classmethod
     def filename(cls, req, params):
         search_path = getattr(cls, 'search_path', None)
-        fn = req.path.lstrip('/')
+        fn = getattr(cls, 'rel_filename', req.path.lstrip('/'))
         if isinstance(search_path, basestring):
             return cls.__filename(search_path, fn, req)
         else:
@@ -74,7 +80,8 @@ class FileResource(Action):
                 sp = req.environ['DOCUMENT_ROOT']
             else:
                 sp = os.getcwd()
-        return os.path.join(sp, fn)
+        f= os.path.join(sp, fn)
+        return f
 
     @classmethod
     def handles(cls, req, params):
