@@ -62,8 +62,8 @@ class URIPrefixFilter(Action):
         return False
 
     def __init__(self, req, params):
-        super(URIPrefixFilter, self).__init__(req, params)
         self.prefix = self.__prefix(req.environ['PATH_INFO'])
+        super(URIPrefixFilter, self).__init__(req, params)
 
     @classmethod
     def derive(cls, *prefixes, **kwargs):
@@ -94,8 +94,8 @@ class URISuffixFilter(Action):
         return False
 
     def __init__(self, req, params):
-        super(URISuffixFilter, self).__init__(req, params)
         self.suffix = self.__suffix(req.environ['PATH_INFO'])
+        super(URISuffixFilter, self).__init__(req, params)
 
     @classmethod
     def derive(cls, *suffixes, **kwargs):
