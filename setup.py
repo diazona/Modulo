@@ -5,11 +5,11 @@ from distutils.core import setup
 
 setup(
     name='Modulo',
-    version='0.1.0a1',
+    version='0.0',
     description='Python Web Development Framework',
     author='David Zaslavsky',
     author_email='diazona@ellipsix.net',
-    url='http://www.ellipsix.net/modulo',
+    url='http://www.ellipsix.net/modulo/index.html',
     packages=['modulo', 'modulo.actions', 'modulo.addons', 'modulo.setup', 'modulo.templating'],
     package_data={'modulo.setup': ['*.html', '*.css', 'skeleton/*.tmpl']},
     scripts=['modulo-setup.py'],
@@ -22,7 +22,9 @@ setup(
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
-        'Topic :: Software Development :: Libraries :: Application Frameworks'
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Internet :: WWW/HTTP :: WSGI',
+        'Topic :: Software Development :: Libraries :: Python Modules'
     ]
 )
