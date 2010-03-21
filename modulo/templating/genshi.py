@@ -13,7 +13,7 @@ _loader_instance = None
 
 def _loader():
     if _loader_instance is None:
-        _loader_instance = TemplateLoader()
+        _loader_instance = TemplateLoader(auto_reload=True)
     return _loader_instance
 
 class GenshiFilesystemTemplate(FileResource):
@@ -28,7 +28,7 @@ class GenshiFilesystemTemplate(FileResource):
                 if search_path is None:
                     loader = _loader()
                 else:
-                    loader = TemplateLoader(search_path)
+                    loader = TemplateLoader(search_path, auto_reload=True)
             search_path = loader.search_path
             if filename is None:
                 # Creating a dynamically loading action
