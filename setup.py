@@ -10,7 +10,7 @@ setup(
     author='David Zaslavsky',
     author_email='diazona@ellipsix.net',
     url='http://www.ellipsix.net/modulo/index.html',
-    packages=['modulo', 'modulo.actions', 'modulo.addons', 'modulo.setup', 'modulo.templating'],
+    packages=['modulo', 'modulo.actions', 'modulo.addons', 'modulo.setup', 'modulo.templating', 'modulo.utilities'],
     package_data={'modulo.setup': ['*.html', '*.css', 'skeleton/*.tmpl']},
     scripts=['modulo-setup.py'],
     classifiers=[
