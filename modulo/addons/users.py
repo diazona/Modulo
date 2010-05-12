@@ -4,7 +4,7 @@ import datetime
 import logging
 import random
 from elixir import session, setup_all
-from elixir import Binary, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
+from elixir import DateTime, Entity, Field, LargeBinary, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from hashlib import sha256
 from hmac import HMAC
 from modulo.actions import Action
@@ -29,8 +29,8 @@ def hash_password(salt, password):
 #---------------------------------------------------------------------------
 class User(Entity):
     login = Field(Unicode(64))
-    salt = Field(Binary(8))
-    password_hash = Field(Binary(256))
+    salt = Field(LargeBinary(8))
+    password_hash = Field(LargeBinary(256))
     email = Field(Unicode(1024))
     status = Field(String(8))
     name = Field(Unicode(64))
@@ -55,8 +55,8 @@ class Permission(Entity):
 class VerificationRequest(Entity):
     request_time = Field(DateTime)
     new_login = Field(Unicode(64))
-    new_salt = Field(Binary(8))
-    new_password_hash = Field(Binary(256))
+    new_salt = Field(LargeBinary(8))
+    new_password_hash = Field(LargeBinary(256))
     new_email = Field(Unicode(1024))
     new_status = Field(String(8))
     vcode = Field(String(64))
