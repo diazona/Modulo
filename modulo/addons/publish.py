@@ -176,6 +176,8 @@ class PostSubmitAggregator(Action):
         post.text = post.text_src = post_text_src
         if post.title and post.text_src:
             post.date = datetime.datetime.now()
+            if post_tags == u'': # TODO: consider whether this sort of case should be handled in RequestDataAggregator
+                post_tags = list()
             post.tags = post_tags
             post.draft = bool(post_draft)
             post.category = post_category
