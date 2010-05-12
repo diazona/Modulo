@@ -10,7 +10,7 @@ from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneT
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
-from modulo.utilities import compact, uri_path
+from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
 from sqlalchemy import desc
 from sqlalchemy.exceptions import SQLError
