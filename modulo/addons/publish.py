@@ -40,6 +40,7 @@ class Post(Entity):
 class Comment(Entity):
     subject = Field(Unicode(128))
     date = Field(DateTime)
+    text_src = Field(UnicodeText)
     text = Field(UnicodeText)
 
     post = ManyToOne('Post')
@@ -214,11 +215,11 @@ class CommentForPostDisplay(Action):
         return compact('comments')
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, comment_text_src, comment_subject, post_id, user=None):
+    def generate(self, rsp, comment_text_src, post_id, user=None, comment_subject=None):
         comment = Comment()
         comment.text_src = comment.text = comment_text_src
-        comment.subject = comment_subject
-        if comment.text_src and comment.subject:
+        if comment.text_src:
+            comment.subject = comment_subject
             comment.date = datetime.datetime.now()
             comment.post = Post.query.filter(Post.id==post_id).one()
             comment.user = user
