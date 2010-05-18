@@ -171,7 +171,6 @@ class CreateUser(Action):
         u.status = user_status
         u.name = user_name
         u.join_date = datetime.datetime.now()
-        u.save()
         session.commit()
         return {'user': u}
 
