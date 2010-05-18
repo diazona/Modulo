@@ -198,8 +198,8 @@ class CommentSubmitAggregator(Action):
     def generate(self, rsp, comment_text, comment_subject, report_id, user=None):
         comment = Comment()
         comment.text = comment_text
-        comment.subject = comment_subject
-        if comment.text and comment.subject:
+        if comment.text:
+            comment.subject = comment_subject
             comment.date = datetime.datetime.now()
             comment.report = Report.query.filter(Report.id==report_id).one()
             comment.user = user
