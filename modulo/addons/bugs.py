@@ -23,7 +23,8 @@ class Report(Entity):
     date = Field(DateTime)
     product = Field(String(32))
     text = Field(UnicodeText)
-    status = Field(Enum('NEW', 'RESOLVED'))
+    status = Field(Enum('NEW', 'IN PROGRESS', 'RESOLVED'))
+    resolution = Field(Enum('', 'FIXED', 'DECLINED', 'DUPLICATE'))
 
     user = ManyToOne('User')
     comments = OneToMany('Comment')
