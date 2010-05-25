@@ -45,4 +45,19 @@ class GenshiFilesystemTemplate(FileResource):
         except AttributeError:
             loader = _loader()
         template = loader.load(self.filename)
-        rsp.data = template.generate(**template_data).render(getattr(self, 'mode', 'html'), doctype=getattr(self, 'doctype', 'html'))
+        return {'stream': template.generate(**template_data)}
+
+class GenshiFilter(Action):
+    @classmethod
+    def derive(cls, filter, **kwargs):
+        return super(GenshiFilter, cls).derive(filter=filter, **kwargs)
+
+    def generate(self, rsp, stream):
+        return {'stream': stream.filter(self.filter)}
+
+class GenshiStreamRenderer(Action):
+    def generate(self, rsp, stream):
+        rsp.data = stream.render(getattr(self, 'mode', 'html'), doctype=getattr(self, 'doctype', 'html'))
+        del stream
+        return {'stream': None}
+
