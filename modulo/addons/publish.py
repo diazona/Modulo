@@ -3,14 +3,16 @@
 '''Actions related to content publication, syndication, etc.'''
 
 import datetime
+import logging
 import modulo.database
 from elixir import session, setup_all
 from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
-from modulo.utilities import compact, uri_path
+from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
+from sqlalchemy import desc
 from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import BadRequest, NotFound
@@ -38,6 +40,7 @@ class Post(Entity):
 class Comment(Entity):
     subject = Field(Unicode(128))
     date = Field(DateTime)
+    text_src = Field(UnicodeText)
     text = Field(UnicodeText)
 
     post = ManyToOne('Post')
@@ -108,16 +111,44 @@ class UserLoginSelector(Action):
     def generate(self, rsp, user_login, pquery=None):
         return {'pquery': _pquery(pquery).filter(Post.user.has(login=user_login))}
 
+class PostDateOrder(Action):
+    ascending = False # I figure False is a reasonable default
+    def generate(self, rsp, pquery=None):
+        if self.ascending:
+            return {'pquery': _pquery(pquery).order_by(Post.date)}
+        else:
+            return {'pquery': _pquery(pquery).order_by(desc(Post.date))}
+        
+
 class PostPaginator(Action):
     page_size = 10
     @classmethod
-    def derive(cls, page_size=10):
-        super(PostPaginator, cls).derive(page_size=page_size)
-    def generate(self, rsp, pquery=None, page=0, page_size=None):
+    def derive(cls, page_size=10, **kwargs):
+        return super(PostPaginator, cls).derive(page_size=page_size, **kwargs)
+
+    def generate(self, rsp, pquery=None, page=None, page_size=None):
         if page_size is None:
             page_size = self.page_size
-        
-        return {'pquery': _pquery(pquery).offset((page - 1) * page_size).limit(page_size)}
+        if page is None:
+            page = 1
+        else:
+            page = int(page)
+            logging.getLogger('modulo.addons.publish').debug('Displaying page ' + str(page))
+        pquery = _pquery(pquery)
+        post_count = pquery.count()
+        return {'pquery': pquery.offset((page - 1) * page_size).limit(page_size), 'page_size': page_size, 'page': page, 'post_count': post_count}
+
+class PostPaginationData(Action):
+    def generate(self, rsp, post_count, page_size, page=1):
+        d = {}
+        page = int(page)
+        pages = max(0, post_count - 1) // page_size + 1 # this is ceil(post_count / page_size)
+        d['pages'] = pages
+        if page < pages:
+            d['next_page'] = page + 1
+        if page > 1:
+            d['prev_page'] = page - 1
+        return d
 
 class PostDisplay(Action):
     def generate(self, rsp, pquery):
@@ -132,14 +163,12 @@ class PostDisplay(Action):
 class MultiPostDisplay(Action):
     def generate(self, rsp, pquery=None):
         pquery = _pquery(pquery)
-        try:
-            posts = pquery.all()
-        except NoResultFound:
+        posts = pquery.all()
+        if len(posts) == 0:
             raise NotFound
-        post_count = pquery.count()
         del pquery # just a bit of premature optimization, for the fun of it
         pquery = None
-        return compact('posts', 'pquery', 'post_count')
+        return compact('posts', 'pquery')
 
 class PostSubmitAggregator(Action):
     def generate(self, rsp, user, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
@@ -148,6 +177,8 @@ class PostSubmitAggregator(Action):
         post.text = post.text_src = post_text_src
         if post.title and post.text_src:
             post.date = datetime.datetime.now()
+            if post_tags == u'': # TODO: consider whether this sort of case should be handled in RequestDataAggregator
+                post_tags = list()
             post.tags = post_tags
             post.draft = bool(post_draft)
             post.category = post_category
@@ -184,11 +215,11 @@ class CommentForPostDisplay(Action):
         return compact('comments')
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, comment_text_src, comment_subject, post_id, user=None):
+    def generate(self, rsp, comment_text_src, post_id, user=None, comment_subject=None):
         comment = Comment()
         comment.text_src = comment.text = comment_text_src
-        comment.subject = comment_subject
-        if comment.text_src and comment.subject:
+        if comment.text_src:
+            comment.subject = comment_subject
             comment.date = datetime.datetime.now()
             comment.post = Post.query.filter(Post.id==post_id).one()
             comment.user = user

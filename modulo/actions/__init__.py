@@ -31,6 +31,7 @@ from os.path import dirname, isfile, join, splitext
 from stat import ST_MTIME
 from werkzeug import validate_arguments
 from werkzeug import BaseRequest
+from werkzeug.exceptions import NotFound
 
 __all__ = ['all_of', 'any_of', 'opt', 'Action']
 
@@ -115,7 +116,7 @@ class ActionMetaclass(type):
     def __call__(self, *args, **kwargs):
         # create a subclass
         d = self.derive(*args, **kwargs)
-        assert d is not None
+        assert d is not None, str(self) + '.derive() returned None (perhaps the programmer forgot a return statement)'
         return d
 
     def __str__(self):
@@ -140,6 +141,13 @@ class Action(object):
     response that winds up being returned to the client is a composite thing put
     together from different parts provided by different handlers.'''
     __metaclass__ = ActionMetaclass
+    
+    # This attribute is a bit of a hack: when set to true, it tells AllActions to
+    # catch and ignore any NotFound exception raised by the generate() method.
+    # This is because some actions indicate that their required resource is not
+    # available by raising NotFound from generate() instead of returning False
+    # from handles(), but we need to have a way to skip them when they're optional.
+    _opt = False
 
     @classmethod
     def derive(cls, **kwargs):
@@ -238,10 +246,13 @@ class Action(object):
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
-        overridden, it will be called with the current WSGI environ as a parameter. It
-        can make any changes to the environ variables, and the resulting environment
-        will be used when asking further actions to handle the request. This can be
-        used to implement things like consuming path components.
+        overridden, it will be called with a copy of the current WSGI environ as a
+        parameter. It can make any changes to the environ variables, and the resulting
+        environment will be used when asking further actions to handle the request.
+        This can be used to implement things like consuming path components.
+
+        Changes can be made in place to the environ parameter, it's not necessary to
+        return the new environment from this method.
 
         By default this method just does nothing.'''
         pass
@@ -335,6 +346,9 @@ class AllActions(Action):
                 return None
             elif isinstance(h, AllActions):
                 logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
+                if h._opt:
+                    for hndl in h.handlers:
+                        hndl._opt = True
                 handlers.extend(h.handlers)
                 req = h.req
                 params = h.params
@@ -388,7 +402,11 @@ class AllActions(Action):
     def generate(self, rsp):
         for h in self.handlers:
             hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
-            p = h.generate(rsp, *(hargs[2:]), **hkwargs)
+            try:
+                p = h.generate(rsp, *(hargs[2:]), **hkwargs)
+            except NotFound:
+                if not h._opt:
+                    raise
             hargs, hkwargs = check_params(p)
             try:
                 namespace = h.namespace
@@ -415,8 +433,9 @@ class OptAction(Action):
     def __new__(cls, req, params):
         h = cls.handler_class.handle(req, params)
         if h is None:
-            logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
-            return cls.handle(req, params)
+            logging.getLogger('modulo.actions').debug(reject_fmt % (cls.handler_class, req))
+            return Action.handle(req, params)
         else:
-            logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
+            logging.getLogger('modulo.actions').debug(accept_fmt % (cls.handler_class, req))
+            h._opt = True
             return h

@@ -12,10 +12,11 @@ import warnings
 from datetime import datetime
 from modulo.actions import Action
 from modulo.utilities import func_update
-from os.path import isdir, isfile
+from os.path import isabs, isdir, isfile
 from stat import ST_MTIME
 from werkzeug import Template
-from werkzeug.utils import http_date, wrap_file
+from werkzeug import wrap_file
+from werkzeug.utils import http_date
 
 class FileResource(Action):
     '''A base class for an action that reads the contents of a file.
@@ -41,23 +42,46 @@ class FileResource(Action):
     The point of the defaults being set up as they are is that FileResource by
     itself can be used as a static file server (albeit an inefficient one).'''
     @classmethod
-    def derive(cls, filename, **kwargs):
-        if isinstance(filename, (str, unicode)):
-            return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename))
+    def derive(cls, filename=None, search_path=None, **kwargs):
+        # search_path can be any iterable of strings, or a plain string
+        if filename is None:
+            return super(FileResource, cls).derive(search_path=search_path, **kwargs)
+        elif isinstance(filename, basestring):
+            if isabs(filename):
+                # In this case the filename is completely specified so we can replace the builtin filename() method
+                return super(FileResource, cls).derive(filename=classmethod(lambda cls, req, params: filename), search_path=search_path, **kwargs)
+            else:
+                # filename is a relative path, so don't replace the builtin filename
+                return super(FileResource, cls).derive(rel_filename=filename, search_path=search_path, **kwargs)
         else:
-            return super(FileResource, cls).derive(filename=filename)
+            # Presumably filename is a callable which should replace the builtin filename() method
+            return super(FileResource, cls).derive(filename=filename, search_path=search_path, **kwargs)
 
     @classmethod
     def filename(cls, req, params):
-        return cls.request_filename(req)
+        search_path = getattr(cls, 'search_path', None)
+        fn = getattr(cls, 'rel_filename', req.path.lstrip('/'))
+        if isinstance(search_path, basestring):
+            return cls.__filename(search_path, fn, req)
+        else:
+            try:
+                for sp in search_path:
+                    fnfull = cls.__filename(sp, fn, req)
+                    if os.path.isfile(fnfull):
+                        return fnfull
+            except TypeError:
+                return cls.__filename(search_path, fn, req)
+            return cls.__filename(None, fn, req)
 
     @staticmethod
-    def request_filename(req):
-        if 'DOCUMENT_ROOT' in req.environ:
-            docroot = req.environ['DOCUMENT_ROOT']
-        else:
-            docroot = os.getcwd()
-        return os.path.join(docroot, req.path.lstrip('/'))
+    def __filename(sp, fn, req):
+        if sp is None:
+            if 'DOCUMENT_ROOT' in req.environ:
+                sp = req.environ['DOCUMENT_ROOT']
+            else:
+                sp = os.getcwd()
+        f= os.path.join(sp, fn)
+        return f
 
     @classmethod
     def handles(cls, req, params):
@@ -161,7 +185,7 @@ class ContentTypeAction(Action):
     even just returning a specific content type independent of the URL.'''
     @classmethod
     def content_type(cls, req):
-        type_enc = mimetypes.guess_type(req.url)
+        type_enc = mimetypes.guess_type(req.base_url)
         type_string = str(type_enc[0])
         if type_enc[1]:
             type_string += ' (encoding=' + type_enc[1] + ')'
@@ -319,7 +343,7 @@ class RequestDataAggregator(Action):
 
     @classmethod
     def derive(cls, *args):
-        super(RequestDataAggregator, cls).derive(keys=args)
+        return super(RequestDataAggregator, cls).derive(keys=args)
 
     @classmethod
     def handles(cls, req, params):
@@ -354,3 +378,20 @@ class GetDataAggregator(RequestDataAggregator):
     @classmethod
     def get_dict(cls, req):
         return req.args
+
+class Statics(Action):
+    '''Injects a set of static parameters into the parameter list.'''
+    @classmethod
+    def derive(cls, **kwargs):
+        return super(Statics, cls).derive(params=kwargs)
+    
+    def parameters(self):
+        return self.params
+        
+class DocumentRoot(Action):
+    @classmethod
+    def derive(cls, docroot, **kwargs):
+        return super(DocumentRoot, cls).derive(docroot=docroot, **kwargs)
+
+    def transform(self, environ):
+        environ['DOCUMENT_ROOT'] = self.docroot

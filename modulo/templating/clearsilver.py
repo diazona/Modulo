@@ -13,6 +13,7 @@ from modulo.templating import EmptyTemplateError
 from modulo.utilities import compact, environ_next
 
 class ClearsilverDataFile(FileResource):
+    '''An Action that loads a Clearsilver data file into the HDF.'''
     def generate(self, rsp, hdf=None):
         if hdf is None:
             hdf = neo_util.HDF()
@@ -22,7 +23,47 @@ class ClearsilverDataFile(FileResource):
 
     @classmethod
     def filename(cls, req, params):
-        return super(ClearsilverDataFile, cls).request_filename(req) + '.hdf'
+        return super(ClearsilverDataFile, cls).filename(req, params) + '.hdf'
+
+class _hdfproxy(object):
+    def __init__(self, hdf):
+        self.__name = hdf.name()
+        if hdf.value():
+            self.__value = hdf.value()
+        self.__children = [_hdfproxy(h) for h in hdf_iterate(hdf)]
+        self.__child_index = dict((h.__name, h) for h in self.__children)
+    def __str__(self):
+        return self.__value
+    def __unicode__(self):
+        return unicode(self.__value)
+    def __repr__(self):
+        return self.__name + ' = ' + repr(self.__value) + '{\n' + '\n'.join(repr(n) for n in self) + '}\n'
+    def __iter__(self):
+        return iter(self.__children)
+    def __contains__(self, name):
+        return name in self.__child_index
+    def __getitem__(self, name):
+        return self.__child_index[name]
+    def __getattr__(self, name):
+        try:
+            return self.__child_index[name]
+        except KeyError:
+            raise AttributeError(name)
+
+class HDFDataFile(FileResource):
+    '''An Action that loads an HDF data file into the parameter list.'''
+    def generate(self, rsp):
+        hdf = neo_util.HDF() # temp object
+        logging.getLogger('modulo.templating.clearsilver').debug('loading file ' + self.filename)
+        hdf.readFile(self.filename)
+        data = {}
+        for node in hdf_iterate(hdf):
+            data[node.name()] = _hdfproxy(node)
+        return data
+
+    @classmethod
+    def filename(cls, req, params):
+        return super(HDFDataFile, cls).filename(req, params) + '.hdf'
 
 class ClearsilverTemplate(FileResource):
     def generate(self, rsp, hdf=None, cs=None):
@@ -36,7 +77,7 @@ class ClearsilverTemplate(FileResource):
 
     @classmethod
     def filename(cls, req, params):
-        return super(ClearsilverTemplate, cls).request_filename(req) + '.cst'
+        return super(ClearsilverTemplate, cls).filename(req, params) + '.cst'
 
 class ClearsilverLoadPath(Action):
     @classmethod
@@ -57,14 +98,18 @@ class ClearsilverLoadPath(Action):
 obj_re = re.compile(r'^<\w+ object at 0x[0-9a-f]{8}>|<type \'\w+\'>$')
 debug = False # TODO: set this based on something
 
+def default_fmt(k, v):
+    return str(v)
+
 class ClearsilverRendering(Action):
+    fmt=staticmethod(default_fmt)
     def generate(self, rsp, hdf, cs, **kwargs):
         # emulate the Clearsilver CGI kit
         load_hdf_cgi_vars(self.req, hdf)
         load_hdf_cookie_vars(self.req, hdf)
         load_hdf_session_vars(self.req, hdf)
         load_hdf_common_vars(self.req, hdf)
-        hdf_insert_dict(hdf, kwargs, '')
+        hdf_insert_dict(hdf, kwargs, '', fmt=self.fmt)
         output = cs.render()
         if not output:
             raise EmptyTemplateError, 'Clearsilver template produced no output'
@@ -262,7 +307,7 @@ def hdf_iterate(hdf, path = None):
             yield hdf
             hdf = hdf.next()
 
-def hdf_insert_value(hdf, dvalue, path, fmt=str):
+def hdf_insert_value(hdf, dvalue, path, fmt=default_fmt):
     '''Insert a value as a string'''
     if path:
         path = path.rstrip('.')
@@ -273,9 +318,9 @@ def hdf_insert_value(hdf, dvalue, path, fmt=str):
     elif isinstance(dvalue, Entity):
         hdf_insert_model(hdf, dvalue, path, fmt)
     elif dvalue is not None:
-        hdf.setValue(path, fmt(dvalue))
+        hdf.setValue(path, fmt(path, dvalue))
 
-def hdf_insert_list(hdf, dlist, path='', fmt=str):
+def hdf_insert_list(hdf, dlist, path='', fmt=default_fmt):
     '''Insert a list of values as children of an HDF node'''
     n = 0
     for elem in dlist:
@@ -283,14 +328,14 @@ def hdf_insert_list(hdf, dlist, path='', fmt=str):
             hdf_insert_value(hdf, elem, '%s.%d' % (path, n), fmt)
             n += 1
 
-def hdf_insert_dict(hdf, ddict, path='', fmt=str):
+def hdf_insert_dict(hdf, ddict, path='', fmt=default_fmt):
     '''Insert a dictionary of values as children of an HDF node'''
     for key in ddict.iterkeys():
         if ddict[key] != ddict:
             key_path = ('%s.%s' % (path, str(key))).lstrip('.')
             hdf_insert_value(hdf, ddict[key], key_path, fmt)
 
-def hdf_insert_model(hdf, dmodel, path='', fmt=str):
+def hdf_insert_model(hdf, dmodel, path='', fmt=default_fmt):
     # We have to put in some irritating special cases
     # Use class name comparison to avoid loading the publish module if it's not really needed
     deep = {}
