@@ -232,7 +232,7 @@ class Action(object):
                     self.params.update(p)
                 else:
                     for k,v in p.iteritems():
-                        self.params[namespace + '.' + k] = v
+                        self.params[namespace + '_' + k] = v
         else:
             self.params = params
 
@@ -396,7 +396,7 @@ class AllActions(Action):
                 self.params.update(hkwargs)
             else:
                 for k,v in hkwargs.iteritems():
-                    self.params[namespace + '.' + k] = v
+                    self.params[namespace + '_' + k] = v
 
 class AnyAction(Action):
     def __new__(cls, req, params):
