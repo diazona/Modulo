@@ -123,8 +123,8 @@ class PostDateOrder(Action):
 class PostPaginator(Action):
     page_size = 10
     @classmethod
-    def derive(cls, page_size=10):
-        return super(PostPaginator, cls).derive(page_size=page_size)
+    def derive(cls, page_size=10, **kwargs):
+        return super(PostPaginator, cls).derive(page_size=page_size, **kwargs)
 
     def generate(self, rsp, pquery=None, page=None, page_size=None):
         if page_size is None:
