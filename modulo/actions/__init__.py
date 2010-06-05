@@ -401,7 +401,13 @@ class AllActions(Action):
 
     def generate(self, rsp):
         for h in self.handlers:
-            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
+            try:
+                namespace = h.namespace
+            except AttributeError:
+                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
+            else:
+                plen = len(namespace) + 1
+                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], dict((k[plen:],v) for k,v in self.params.iteritems() if k.startswith(namespace + '_')), True)
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             except NotFound:
