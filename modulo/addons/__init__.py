@@ -1,6 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 
 from modulo.actions import Action
+from sqlalchemy import desc
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import NotFound
 
