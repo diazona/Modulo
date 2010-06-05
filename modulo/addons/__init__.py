@@ -13,10 +13,16 @@ class Query(Action):
 
 class ValueSelector(Action):
     field = 'id'
+    @classmethod
+    def derive(cls, field, **kwargs):
+        return super(ValueSelector, cls).derive(field=field, **kwargs)
     def generate(self, rsp, query, model, **kwargs):
         return {'query': query.filter(getattr(model, self.field)==kwargs[self.field])}
 class RangeSelector(Action):
     field = 'id'
+    @classmethod
+    def derive(cls, field, **kwargs):
+        return super(RangeSelector, cls).derive(field=field, **kwargs)
     def generate(self, rsp, query, model, range_min, range_max):
         return {'query': query.filter(range_min <= getattr(model, self.field) <= range_max)}
 class YearMonthDaySelector(Action):
@@ -38,6 +44,9 @@ class YearMonthDaySelector(Action):
 class DateOrdering(Action):
     field = 'id'
     ascending = False # I figure False is a reasonable default
+    @classmethod
+    def derive(cls, field, ascending=False, **kwargs):
+        return super(DateOrdering, cls).derive(field=field, ascending=ascending, **kwargs)
     def generate(self, rsp, query, model):
         if self.ascending:
             return {'query': query.order_by(model.field)}
