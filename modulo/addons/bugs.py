@@ -8,6 +8,7 @@ from elixir import session, setup_all
 from elixir import Boolean, DateTime, Entity, Enum, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
+from modulo.addons.publish import Post
 from modulo.addons.users import User
 from modulo.utilities import compact, markup, summarize, uri_path
 from sqlalchemy import desc
@@ -18,30 +19,9 @@ from werkzeug.exceptions import BadRequest, NotFound
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
-class Report(Entity):
-    title = Field(Unicode(128))
-    date = Field(DateTime)
-    product = Field(String(32))
-    text = Field(UnicodeText)
+class Report(Post):
     status = Field(Enum('NEW', 'IN PROGRESS', 'RESOLVED'))
     resolution = Field(Enum('', 'FIXED', 'DECLINED', 'DUPLICATE'))
-
-    user = ManyToOne('User')
-    comments = OneToMany('Comment')
-    tags = ManyToMany('Tag')
-
-class Comment(Entity):
-    subject = Field(Unicode(128))
-    date = Field(DateTime)
-    text = Field(UnicodeText)
-
-    report = ManyToOne('Report')
-    user = ManyToOne('User')
-
-class Tag(Entity):
-    name = Field(Unicode(128), primary_key=True)
-
-    report = ManyToMany('Report')
 
 setup_all()
 
@@ -180,59 +160,4 @@ class ReportCommit(Action):
     def generate(self, rsp):
         session.commit()
         rsp.status_code = 201
-
-#---------------------------------------------------------------------------
-# Comments
-#---------------------------------------------------------------------------
-
-class CommentDisplay(Action):
-    def generate(self, rsp, comment_id):
-        comment = Comment.query.filter(Comment.id==comment_id).one()
-        return compact('comment')
-
-class CommentForReportDisplay(Action):
-    def generate(self, rsp, report):
-        comments = Comment.query.filter(Comment.report==report).all()
-        return compact('comments')
-
-class CommentSubmitAggregator(Action):
-    def generate(self, rsp, comment_text, comment_subject, report_id, user=None):
-        comment = Comment()
-        comment.text = comment_text
-        if comment.text:
-            comment.subject = comment_subject
-            comment.date = datetime.datetime.now()
-            comment.report = Report.query.filter(Report.id==report_id).one()
-            comment.user = user
-            return compact('comment')
-        else:
-            comment.delete()
-
-class CommentCommit(Action):
-    def generate(self, rsp):
-        session.commit()
-        rsp.status_code = 201
-
-#---------------------------------------------------------------------------
-# Tags
-#---------------------------------------------------------------------------
-
-class MultiTagDisplay(Action):
-    def generate(self, rsp):
-        tags = Tag.query.all()
-        return compact('tags')
-
-class TagForReportDisplay(Action):
-    def generate(self, rsp, report):
-        report_tags = Tag.query.filter(Tag.reports.any(report=report)).all()
-        return compact('report_tags')
-
-class TagSubmit(Action):
-    def generate(self, rsp, tag_name):
-        try:
-            tag = Tag.query.filter(Tag.name==tag_name).one()
-        except NoResultFound:
-            tag = Tag()
-            tag.name = tag_name
-        return compact('tag')
 

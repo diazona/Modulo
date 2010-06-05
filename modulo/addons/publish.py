@@ -20,36 +20,37 @@ from werkzeug.exceptions import BadRequest, NotFound
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
-class Post(Entity):
-    title = Field(Unicode(128))
-    slug = Field(Unicode(128))
-    draft = Field(Boolean)
-    date = Field(DateTime)
-    edit_date = Field(DateTime)
-    category = Field(String(32))
-    markup_mode = Field(String(32))
-    summary_src = Field(UnicodeText)
-    summary = Field(UnicodeText)
-    text_src = Field(UnicodeText)
-    text = Field(UnicodeText)
-
-    user = ManyToOne('User')
-    comments = OneToMany('Comment')
+class Taggable(Entity):
     tags = ManyToMany('Tag')
-
-class Comment(Entity):
-    subject = Field(Unicode(128))
-    date = Field(DateTime)
-    text_src = Field(UnicodeText)
-    text = Field(UnicodeText)
-
-    post = ManyToOne('Post')
-    user = ManyToOne('User')
 
 class Tag(Entity):
     name = Field(Unicode(128), primary_key=True)
+    tagged = ManyToMany('Taggable')
 
-    posts = ManyToMany('Post')
+class Commentable(Entity):
+    comments = OneToMany('Comment')
+
+class BaseComment(Commentable):
+    title = Field(Unicode(128))
+    date = Field(DateTime)
+    draft = Field(Boolean)
+    text = Field(UnicodeText)
+
+class Post(BaseComment, Taggable):
+    slug = Field(Unicode(128))
+    category = Field(String(32))
+    summary = Field(UnicodeText)
+
+    user = ManyToOne('User')
+
+class EditablePost(Post):
+    edit_date = Field(DateTime)
+    markup_mode = Field(String(32))
+    summary_src = Field(UnicodeText)
+    text_src = Field(UnicodeText)
+
+class Comment(BaseComment):
+    parent = ManyToOne('Commentable')
 
 setup_all()
 
