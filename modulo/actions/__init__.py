@@ -234,7 +234,13 @@ class Action(object):
             else:
                 assert isinstance(p, dict)
                 self.params = params.copy()
-                self.params.update(p)
+                try:
+                    namespace = self.namespace
+                except AttributeError:
+                    self.params.update(p)
+                else:
+                    for k,v in p.iteritems():
+                        self.params[namespace + '_' + k] = v
         else:
             self.params = params
 
@@ -402,7 +408,13 @@ class AllActions(Action):
                 if not h._opt:
                     raise
             hargs, hkwargs = check_params(p)
-            self.params.update(hkwargs)
+            try:
+                namespace = h.namespace
+            except AttributeError:
+                self.params.update(hkwargs)
+            else:
+                for k,v in hkwargs.iteritems():
+                    self.params[namespace + '_' + k] = v
 
 class AnyAction(Action):
     def __new__(cls, req, params):
