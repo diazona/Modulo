@@ -50,9 +50,9 @@ class DateOrdering(Action):
         return super(DateOrdering, cls).derive(field=field, ascending=ascending, **kwargs)
     def generate(self, rsp, query, model):
         if self.ascending:
-            return {'query': query.order_by(model.field)}
+            return {'query': query.order_by(getattr(model, field))}
         else:
-            return {'query': query.order_by(desc(model.field))}
+            return {'query': query.order_by(desc(getattr(model, field)))}
 
 
 class Paginator(Action):
