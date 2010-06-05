@@ -40,6 +40,7 @@ class Post(Entity):
 class Comment(Entity):
     subject = Field(Unicode(128))
     date = Field(DateTime)
+    text_src = Field(UnicodeText)
     text = Field(UnicodeText)
 
     post = ManyToOne('Post')
@@ -122,8 +123,8 @@ class PostDateOrder(Action):
 class PostPaginator(Action):
     page_size = 10
     @classmethod
-    def derive(cls, page_size=10):
-        return super(PostPaginator, cls).derive(page_size=page_size)
+    def derive(cls, page_size=10, **kwargs):
+        return super(PostPaginator, cls).derive(page_size=page_size, **kwargs)
 
     def generate(self, rsp, pquery=None, page=None, page_size=None):
         if page_size is None:
@@ -214,11 +215,11 @@ class CommentForPostDisplay(Action):
         return compact('comments')
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, comment_text_src, comment_subject, post_id, user=None):
+    def generate(self, rsp, comment_text_src, post_id, user=None, comment_subject=None):
         comment = Comment()
         comment.text_src = comment.text = comment_text_src
-        comment.subject = comment_subject
-        if comment.text_src and comment.subject:
+        if comment.text_src:
+            comment.subject = comment_subject
             comment.date = datetime.datetime.now()
             comment.post = Post.query.filter(Post.id==post_id).one()
             comment.user = user
