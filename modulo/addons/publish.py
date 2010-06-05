@@ -20,27 +20,23 @@ from werkzeug.exceptions import BadRequest, NotFound
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
-class Taggable(Entity):
-    tags = ManyToMany('Tag')
-
 class Tag(Entity):
     name = Field(Unicode(128), primary_key=True)
-    tagged = ManyToMany('Taggable')
 
-class Commentable(Entity):
-    comments = OneToMany('Comment')
-
-class BaseComment(Commentable):
+class BaseComment(Entity):
     title = Field(Unicode(128))
     date = Field(DateTime)
     draft = Field(Boolean)
     text = Field(UnicodeText)
 
-class Post(BaseComment, Taggable):
+    comments = OneToMany('Comment')
+
+class Post(BaseComment):
     slug = Field(Unicode(128))
     category = Field(String(32))
     summary = Field(UnicodeText)
 
+    tags = ManyToMany('Tag')
     user = ManyToOne('User')
 
 class EditablePost(Post):
@@ -50,7 +46,10 @@ class EditablePost(Post):
     text_src = Field(UnicodeText)
 
 class Comment(BaseComment):
-    parent = ManyToOne('Commentable')
+    parent = ManyToOne('BaseComment')
+    # TODO: go back to having a Commentable class or some equivalent, so that Comments
+    # can be attached to generic Entities, not just those that inherit from BaseComment.
+    # This will require some sort of polymorphism, possibly the AssociationProxy pattern.
 
 setup_all()
 
