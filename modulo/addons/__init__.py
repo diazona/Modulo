@@ -1,6 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 
 from modulo.actions import Action
+from modulo.utilities import compact
 from sqlalchemy import desc
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import NotFound
@@ -50,9 +51,9 @@ class DateOrdering(Action):
         return super(DateOrdering, cls).derive(field=field, ascending=ascending, **kwargs)
     def generate(self, rsp, query, model):
         if self.ascending:
-            return {'query': query.order_by(getattr(model, field))}
+            return {'query': query.order_by(getattr(model, self.field))}
         else:
-            return {'query': query.order_by(desc(getattr(model, field)))}
+            return {'query': query.order_by(desc(getattr(model, self.field)))}
 
 
 class Paginator(Action):
