@@ -69,122 +69,20 @@ class TransactionID(Action):
 # Posts
 #---------------------------------------------------------------------------
 
-def _pquery(pquery=None):
-    if pquery is None:
-        return Post.query
-    else:
-        return pquery
-
-class PostIDSelector(Action):
-    def generate(self, rsp, post_id, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.id==post_id)}
-class PostDateSelector(Action):
-    def generate(self, rsp, post_date_min, post_date_max, pquery=None):
-        return {'pquery': _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)}
-class PostYearMonthDaySelector(Action):
-    def generate(self, rsp, post_year, post_month=None, post_day=None, pquery=None):
-        if post_month is None:
-            post_date_min = datetime.datetime(post_year, 1, 1)
-            post_date_max = datetime.datetime(post_year + 1, 1, 1)
-        elif post_day is None:
-            post_date_min = datetime.datetime(post_year, post_month, 1)
-            if post_month == 12:
-                post_date_max = datetime.datetime(post_year + 1, 1, 1)
-            else:
-                post_date_max = datetime.datetime(post_year, post_month + 1, 1)
-        else:
-            post_date_min = datetime.datetime(post_year, post_month, post_day)
-            post_date_max = post_date_min + datetime.timedelta(days=1)
-        return {'pquery': _pquery(pquery).filter(post_date_min <= Post.date <= post_date_max)}
-class PostSlugSelector(Action):
-    def generate(self, rsp, post_slug, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.slug==post_slug)}
-class TagIDSelector(Action):
-    def generate(self, rsp, tag_id, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.tags.any(id==tag_id))}
-class TagNameSelector(Action):
-    def generate(self, rsp, tag_name, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.tags.any(name=tag_name))}
-class UserIDSelector(Action):
-    def generate(self, rsp, user_id, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.user.has(id=user_id))}
-class UserLoginSelector(Action):
-    def generate(self, rsp, user_login, pquery=None):
-        return {'pquery': _pquery(pquery).filter(Post.user.has(login=user_login))}
-
-class PostDateOrder(Action):
-    ascending = False # I figure False is a reasonable default
-    def generate(self, rsp, pquery=None):
-        if self.ascending:
-            return {'pquery': _pquery(pquery).order_by(Post.date)}
-        else:
-            return {'pquery': _pquery(pquery).order_by(desc(Post.date))}
-        
-
-class PostPaginator(Action):
-    page_size = 10
-    @classmethod
-    def derive(cls, page_size=10, **kwargs):
-        return super(PostPaginator, cls).derive(page_size=page_size, **kwargs)
-
-    def generate(self, rsp, pquery=None, page=None, page_size=None):
-        if page_size is None:
-            page_size = self.page_size
-        if page is None:
-            page = 1
-        else:
-            page = int(page)
-            logging.getLogger('modulo.addons.publish').debug('Displaying page ' + str(page))
-        pquery = _pquery(pquery)
-        post_count = pquery.count()
-        return {'pquery': pquery.offset((page - 1) * page_size).limit(page_size), 'page_size': page_size, 'page': page, 'post_count': post_count}
-
-class PostPaginationData(Action):
-    def generate(self, rsp, post_count, page_size, page=1):
-        d = {}
-        page = int(page)
-        pages = max(0, post_count - 1) // page_size + 1 # this is ceil(post_count / page_size)
-        d['pages'] = pages
-        if page < pages:
-            d['next_page'] = page + 1
-        if page > 1:
-            d['prev_page'] = page - 1
-        return d
-
-class PostDisplay(Action):
-    def generate(self, rsp, pquery):
-        try:
-            post = pquery.one()
-        except NoResultFound:
-            raise NotFound
-        del pquery
-        pquery = None
-        return compact('post', 'pquery')
-
-class MultiPostDisplay(Action):
-    def generate(self, rsp, pquery=None):
-        pquery = _pquery(pquery)
-        posts = pquery.all()
-        if len(posts) == 0:
-            raise NotFound
-        del pquery # just a bit of premature optimization, for the fun of it
-        pquery = None
-        return compact('posts', 'pquery')
-
 class PostSubmitAggregator(Action):
-    def generate(self, rsp, user, post_title, post_text_src, post_tags=list(), post_draft=False, post_category=None, post_markup_mode=None, post_summary_src=None):
+    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None):
         post = Post()
-        post.title = post_title
-        post.text = post.text_src = post_text_src
+        post.title = title
+        post.text = post.text_src = text_src
         if post.title and post.text_src:
             post.date = datetime.datetime.now()
-            if post_tags == u'': # TODO: consider whether this sort of case should be handled in RequestDataAggregator
-                post_tags = list()
-            post.tags = post_tags
-            post.draft = bool(post_draft)
-            post.category = post_category
-            post.markup_mode = post_markup_mode
-            post.summary = post.summary_src = post_summary_src
+            if tags == u'':
+                tags = list()
+            post.tags = tags
+            post.draft = bool(draft)
+            post.category = category
+            post.markup_mode = markup_mode
+            post.summary = post.summary_src = summary_src
             post.user = user
         return compact('post')
 
@@ -204,16 +102,6 @@ class PostCommit(Action):
 #---------------------------------------------------------------------------
 # Comments
 #---------------------------------------------------------------------------
-
-class CommentDisplay(Action):
-    def generate(self, rsp, comment_id):
-        comment = Comment.query.filter(Comment.id==comment_id).one()
-        return compact('comment')
-
-class CommentForPostDisplay(Action):
-    def generate(self, rsp, post):
-        comments = Comment.query.filter(Comment.post==post).all()
-        return compact('comments')
 
 class CommentSubmitAggregator(Action):
     def generate(self, rsp, comment_text_src, post_id, user=None, comment_subject=None):
@@ -241,24 +129,16 @@ class CommentCommit(Action):
 # Tags
 #---------------------------------------------------------------------------
 
-class MultiTagDisplay(Action):
-    def generate(self, rsp):
-        tags = Tag.query.all()
-        return compact('tags')
-
-class TagForPostDisplay(Action):
-    def generate(self, rsp, post):
-        post_tags = Tag.query.filter(Tag.posts.any(post=post)).all()
-        return compact('post_tags')
+class TagIDSelector(Action):
+    def generate(self, rsp, query, id):
+        return {'query': query.filter(Taggable.tags.any(id==id))}
+class TagNameSelector(Action):
+    def generate(self, rsp, query, name):
+        return {'query': query.filter(Taggable.tags.any(name=name))}
 
 class TagSubmit(Action):
-    def generate(self, rsp, tag_name):
-        try:
-            tag = Tag.query.filter(Tag.name==tag_name).one()
-        except NoResultFound:
-            tag = Tag()
-            tag.name = tag_name
-        return compact('tag')
+    def generate(self, rsp, name):
+        return {'tag': Tag(name=name)}
 
 #---------------------------------------------------------------------------
 # Linkback autodiscovery

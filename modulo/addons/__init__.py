@@ -1,0 +1,89 @@
+# -*- coding: iso-8859-1 -*-
+
+from modulo.actions import Action
+from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.exceptions import NotFound
+
+class Query(Action):
+    @classmethod
+    def derive(cls, model, **kwargs):
+        return super(Query, cls).derive(model=model, **kwargs)
+    def generate(self, rsp):
+        return {'query': self.model.query, 'model': self.model}
+
+class ValueSelector(Action):
+    field = 'id'
+    def generate(self, rsp, query, model, **kwargs):
+        return {'query': query.filter(getattr(model, self.field)==kwargs[self.field])}
+class RangeSelector(Action):
+    field = 'id'
+    def generate(self, rsp, query, model, range_min, range_max):
+        return {'query': query.filter(range_min <= getattr(model, self.field) <= range_max)}
+class YearMonthDaySelector(Action):
+    def generate(self, rsp, query, model, year, month=None, day=None):
+        if month is None:
+            date_min = datetime.datetime(year, 1, 1)
+            date_max = datetime.datetime(year + 1, 1, 1)
+        elif day is None:
+            date_min = datetime.datetime(year, month, 1)
+            if month == 12:
+                date_max = datetime.datetime(year + 1, 1, 1)
+            else:
+                date_max = datetime.datetime(year, month + 1, 1)
+        else:
+            date_min = datetime.datetime(year, month, day)
+            date_max = date_min + datetime.timedelta(days=1)
+        return {'query': query.filter(date_min <= model.date <= date_max)}
+
+class DateOrdering(Action):
+    field = 'id'
+    ascending = False # I figure False is a reasonable default
+    def generate(self, rsp, query, model):
+        if self.ascending:
+            return {'query': query.order_by(model.field)}
+        else:
+            return {'query': query.order_by(desc(model.field))}
+
+
+class Paginator(Action):
+    page_size = 10
+    @classmethod
+    def derive(cls, page_size=10, **kwargs):
+        return super(Paginator, cls).derive(page_size=page_size, **kwargs)
+
+    def generate(self, rsp, query, model, page=None, page_size=None):
+        if page_size is None:
+            page_size = self.page_size
+        if page is None:
+            page = 1
+        else:
+            page = int(page)
+            logging.getLogger('modulo.addons.publish').debug('Displaying page ' + str(page))
+        count = query.count()
+        pages = max(0, count - 1) // page_size + 1 # this is ceil(post_count / page_size)
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        d = compact('query', 'page_size', 'page', 'pages', 'count')
+        if page < pages:
+            d['page_next'] = page + 1
+        if page > 1:
+            d['page_prev'] = page - 1
+        return d
+
+class FetchOne(Action):
+    def generate(self, rsp, query):
+        try:
+            record = query.one()
+        except NoResultFound:
+            raise NotFound
+        finally:
+            del self.params['query']
+        return compact('record')
+
+class FetchAll(Action):
+    raise_not_found = True
+    def generate(self, rsp, query):
+        records = query.all()
+        del self.params['query']
+        if self.raise_not_found and len(records) == 0:
+            raise NotFound
+        return compact('records')

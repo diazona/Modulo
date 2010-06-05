@@ -108,6 +108,13 @@ class CurrentUserCheck(Action):
         else:
             return {'user': u}
 
+class UserIDSelector(Action):
+    def generate(self, rsp, query, model, id):
+        return {'query': query.filter(model.user.has(id=id))}
+class UserLoginSelector(Action):
+    def generate(self, rsp, query, model, login):
+        return {'query': query.filter(model.user.has(login=login))}
+
 #---------------------------------------------------------------------------
 # User authentication
 #---------------------------------------------------------------------------

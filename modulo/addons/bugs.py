@@ -29,39 +29,6 @@ setup_all()
 # General stuff
 #---------------------------------------------------------------------------
 
-def _rquery(rquery=None):
-    if rquery is None:
-        return Report.query
-    else:
-        return rquery
-
-class ReportIDSelector(Action):
-    def generate(self, rsp, report_id, rquery=None):
-        return {'rquery': _rquery(rquery).filter(Report.id==report_id)}
-class ReportStatusSelector(Action):
-    def generate(self, rsp, report_status, rquery=None):
-        return {'rquery': _rquery(rquery).filter(Report.status==report_status)}
-class ReportProductSelector(Action):
-    def generate(self, rsp, report_product, rquery=None):
-        return {'rquery': _rquery(rquery).filter(Report.product==report_product)}
-class ReportDateSelector(Action):
-    def generate(self, rsp, report_date_min, report_date_max, rquery=None):
-        return {'rquery': _rquery(rquery).filter(report_date_min <= Report.date <= report_date_max)}
-class ReportYearMonthDaySelector(Action):
-    def generate(self, rsp, report_year, report_month=None, report_day=None, rquery=None):
-        if report_month is None:
-            report_date_min = datetime.datetime(report_year, 1, 1)
-            report_date_max = datetime.datetime(report_year + 1, 1, 1)
-        elif report_day is None:
-            report_date_min = datetime.datetime(report_year, report_month, 1)
-            if report_month == 12:
-                report_date_max = datetime.datetime(report_year + 1, 1, 1)
-            else:
-                report_date_max = datetime.datetime(report_year, report_month + 1, 1)
-        else:
-            report_date_min = datetime.datetime(report_year, report_month, report_day)
-            report_date_max = report_date_min + datetime.timedelta(days=1)
-        return {'rquery': _rquery(rquery).filter(report_date_min <= Report.date <= report_date_max)}
 class TagIDSelector(Action):
     def generate(self, rsp, tag_id, rquery=None):
         return {'rquery': _rquery(rquery).filter(Report.tags.any(id==tag_id))}
