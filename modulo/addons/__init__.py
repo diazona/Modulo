@@ -84,14 +84,22 @@ class FetchOne(Action):
         except NoResultFound:
             raise NotFound
         finally:
-            del self.params['query']
+            try:
+                key = self.namespace + '_query'
+            except AttributeError:
+                key = 'query'
+            del self.params[key]
         return compact('record')
 
 class FetchAll(Action):
     raise_not_found = True
     def generate(self, rsp, query):
         records = query.all()
-        del self.params['query']
+        try:
+            key = self.namespace + '_query'
+        except AttributeError:
+            key = 'query'
+        del self.params[key]
         if self.raise_not_found and len(records) == 0:
             raise NotFound
         return compact('records')
