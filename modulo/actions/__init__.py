@@ -406,8 +406,14 @@ class AllActions(Action):
             except AttributeError:
                 hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
             else:
-                plen = len(namespace) + 1
-                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], dict((k[plen:],v) for k,v in self.params.iteritems() if k.startswith(namespace + '_')), True)
+                params = {}
+                for k in self.params:
+                    kparts = k.split('_', 1)
+                    if len(kparts) == 1:
+                        params[kparts[0]] = self.params[k]
+                    elif kparts[0] == namespace:
+                        params[kparts[1]] = self.params[k]
+                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             except NotFound:

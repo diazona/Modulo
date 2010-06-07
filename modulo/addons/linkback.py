@@ -175,8 +175,8 @@ class EnableTrackback(Action):
     def derive(cls, trackback_prefix):
         return super(EnableTrackback, cls).derive(trackback_prefix=trackback_prefix)
 
-    def generate(self, rsp, canonical_uri):
-        return {'trackback_url': 'http://' + self.req.host + self.trackback_prefix + canonical_uri}
+    def generate(self, rsp, canonicaluri):
+        return {'trackback_url': 'http://' + self.req.host + self.trackback_prefix + canonicaluri}
 
 class EnablePingback(Action):
     '''Inserts the key pingback_url into the dictionary, and also sets the X-Pingback header.'''
@@ -190,5 +190,5 @@ class EnablePingback(Action):
 
 class LinkbackDisplay(Action):
     '''Selects all linkback requests submitted for the current page.'''
-    def generate(self, rsp, canonical_uri):
-        return {'linkbacks': Linkback.query.filter(Linkback.local_uri==canonical_uri).all()}
+    def generate(self, rsp, canonicaluri):
+        return {'linkbacks': Linkback.query.filter(Linkback.local_uri==canonicaluri).all()}
