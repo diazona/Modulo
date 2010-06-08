@@ -163,14 +163,19 @@ class WerkzeugMapFilter(Action):
             logging.getLogger('modulo.actions.filters').debug('WerkzeugMapFilter got endpoint ' + repr(endpoint))
             if not isinstance(endpoint, ClassType) or not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
+            ns = getattr(cls, 'namespace', '') # namespace='*' is not implemented here
+            ns_params = params[ns].copy()
+            params = params.copy()
+            params[ns] = ns_params
             if arguments:
-                params = params.copy()
-                params.update(arguments)
+                ns_params.update(arguments)
             h = endpoint.handle(req, params)
             if h is None:
                 return None
-            params['map_adapter'] = map_adapter
-            params.update(h.params)
+            params[ns]['map_adapter'] = map_adapter
+            hp = h.parameters()
+            if hp:
+                params[ns].update()
             h.params = params
             return h
 
