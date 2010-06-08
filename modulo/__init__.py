@@ -14,7 +14,7 @@ logging.basicConfig(stream=local('error_stream'))
 local.error_stream = sys.stderr
 
 # prevent the werkzeug logger from propagating messages because it has its own output scheme
-logging.getLogger('werkzeug').propagate = False
+#logging.getLogger('werkzeug').propagate = False
 
 from modulo.actions import all_of, any_of, opt
 from modulo.wrappers import Request, Response
