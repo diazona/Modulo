@@ -17,12 +17,14 @@ class JinjaEnvironment(Action):
         return {'env': self.env}
 
 class JinjaTemplate(Action):
+    namespace = '*'
     def generate(self, rsp, env, **kwargs):
         template_data = self.req.environ.copy()
         template_data.update(kwargs)
         rsp.response = self.env.get_template(self.template_name).generate(template_data)
 
 class JinjaFilesystemTemplate(FileResource):
+    namespace = '*'
     @classmethod
     def derive(cls, search_path, **kwargs):
         return super(JinjaFilesystemTemplate, cls).derive(env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path, **kwargs)

@@ -26,6 +26,7 @@ class ClearsilverDataFile(FileResource):
         return super(ClearsilverDataFile, cls).filename(req, params) + '.hdf'
 
 class _hdfproxy(object):
+    # TODO: combine this with modulo.utilities.attribute_dict
     def __init__(self, hdf):
         self.__name = hdf.name()
         if hdf.value():
@@ -102,6 +103,7 @@ def default_fmt(k, v):
     return str(v)
 
 class ClearsilverRendering(Action):
+    namespace = '*'
     fmt=staticmethod(default_fmt)
     def generate(self, rsp, hdf, cs, **kwargs):
         # emulate the Clearsilver CGI kit
@@ -338,6 +340,7 @@ def hdf_insert_dict(hdf, ddict, path='', fmt=default_fmt):
 def hdf_insert_model(hdf, dmodel, path='', fmt=default_fmt):
     # We have to put in some irritating special cases
     # Use class name comparison to avoid loading the publish module if it's not really needed
+    # TODO: find a way around this
     deep = {}
     if dmodel.__module__ == 'modulo.addons.publish':
         if dmodel.__class__.__name__ == 'Post':

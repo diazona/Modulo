@@ -25,7 +25,7 @@ import time
 import urlparse
 import weakref
 from copy import copy
-from modulo.utilities import check_params, hash_iterable, wrap_dict
+from modulo.utilities import check_params, hash_iterable, attribute_dict, wrap_dict
 from modulo.wrappers import Request
 from os.path import dirname, isfile, join, splitext
 from stat import ST_MTIME
@@ -394,11 +394,16 @@ class AllActions(Action):
 
     def generate(self, rsp):
         for h in self.handlers:
+            namespace = getattr(h, 'namespace', '')
             params = self.params[''].copy()
-            try:
-                params.update(self.params[h.namespace])
-            except AttributeError:
-                pass
+            if namespace == '*':
+                for ns in self.params:
+                    if ns:
+                        for key in self.params[ns]:
+                            params[ns] = attribute_dict(self.params[ns])
+            else:
+                if namespace:
+                    params.update(self.params[namespace])
             hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
@@ -406,9 +411,9 @@ class AllActions(Action):
                 if not h._opt:
                     raise
             hargs, hkwargs = check_params(p)
-            try:
-                self.params[h.namespace].update(hkwargs)
-            except AttributeError:
+            if namespace not in ('','*'):
+                self.params[namespace].update(hkwargs)
+            else:
                 self.params[''].update(hkwargs)
 
 class AnyAction(Action):

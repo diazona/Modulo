@@ -75,6 +75,15 @@ class wrap_dict(dict):
     def __del__(self):
         del self.__parent
 
+# TODO: combine this with modulo.templating.clearsilver._hdfproxy
+class attribute_dict(dict):
+    def __getattr__(self, name):
+        return self.__getitem__(name)
+    def __setattr__(self, name, value):
+        return self.__setitem__(name, value)
+    def __delattr__(self, name):
+        return self.__delitem__(name)
+
 def check_params(params):
     '''Returns a tuple(list, dict) based on input params.
 

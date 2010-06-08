@@ -17,6 +17,7 @@ def _loader():
     return _loader_instance
 
 class GenshiFilesystemTemplate(FileResource):
+    namespace = '*'
     @classmethod
     def derive(cls, filename=None, search_path=None, loader=None, **kwargs):
         # Need to make sure the search_path parameter matches the loader's search path

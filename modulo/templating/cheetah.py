@@ -8,16 +8,19 @@ from modulo.actions.standard import FileResource
 from os.path import join
 
 class CheetahStringTemplate(Action):
+    namespace = '*'
     def generate(self, rsp, **kwargs):
         rsp.data = str(Template(source=self.template, searchList=[self.req.environ, kwargs]))
 
 class CheetahFilesystemTemplate(FileResource):
+    namespace = '*'
     def generate(self, rsp, **kwargs):
         # Cheetah is not Unicode-aware, apparently, so we need to str(self.filename)
         rsp.data = str(Template(file=str(self.filename), searchList=[self.req.environ, kwargs]))
 
 class CheetahCompiledTemplate(Action):
     '''Represents a compiled Cheetah template.'''
+    namespace = '*'
     @classmethod
     def derive(cls, template, module=None, package=None, **kwargs):
         '''Return an Action corresponding to the given compiled template. This method
