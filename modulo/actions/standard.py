@@ -383,10 +383,10 @@ class Statics(Action):
     '''Injects a set of static parameters into the parameter list.'''
     @classmethod
     def derive(cls, **kwargs):
-        return super(Statics, cls).derive(params=kwargs)
+        return super(Statics, cls).derive(cparams=kwargs)
     
     def parameters(self):
-        return self.params
+        return self.cparams
         
 class DocumentRoot(Action):
     @classmethod

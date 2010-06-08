@@ -4,6 +4,7 @@
 
 import logging
 import sys
+from collections import defaultdict
 from werkzeug import Local, LocalManager
 from werkzeug.exceptions import HTTPException, InternalServerError, NotFound, _ProxyException
 
@@ -19,7 +20,7 @@ from modulo.actions import all_of, any_of, opt
 from modulo.wrappers import Request, Response
 
 def run_everything(tree, request):
-    handler = tree.handle(request, {})
+    handler = tree.handle(request, defaultdict(dict)) # This is where the parameter list gets constructed
     if handler is None:
         raise NotFound()
     logging.getLogger('modulo').debug('\n'+str(handler))

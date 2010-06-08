@@ -227,22 +227,15 @@ class Action(object):
             self.req = req.__class__(environ)
         else:
             self.req = req
+        self.params = params
         if self.__class__.parameters.im_func is not Action.parameters.im_func:
             p = self.parameters()
-            if p is None:
-                self.params = params
-            else:
+            if p is not None:
                 assert isinstance(p, dict)
-                self.params = params.copy()
                 try:
-                    namespace = self.namespace
+                    self.params[self.namespace].update(p)
                 except AttributeError:
-                    self.params.update(p)
-                else:
-                    for k,v in p.iteritems():
-                        self.params[namespace + '_' + k] = v
-        else:
-            self.params = params
+                    self.params[''].update(p)
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
@@ -401,19 +394,12 @@ class AllActions(Action):
 
     def generate(self, rsp):
         for h in self.handlers:
+            params = self.params[''].copy()
             try:
-                namespace = h.namespace
+                params.update(self.params[h.namespace])
             except AttributeError:
-                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], self.params.copy(), True)
-            else:
-                params = {}
-                for k in self.params:
-                    kparts = k.split('_', 1)
-                    if len(kparts) == 1:
-                        params[kparts[0]] = self.params[k]
-                    elif kparts[0] == namespace:
-                        params[kparts[1]] = self.params[k]
-                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
+                pass
+            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             except NotFound:
@@ -421,12 +407,9 @@ class AllActions(Action):
                     raise
             hargs, hkwargs = check_params(p)
             try:
-                namespace = h.namespace
+                self.params[h.namespace].update(hkwargs)
             except AttributeError:
-                self.params.update(hkwargs)
-            else:
-                for k,v in hkwargs.iteritems():
-                    self.params[namespace + '_' + k] = v
+                self.params[''].update(hkwargs)
 
 class AnyAction(Action):
     def __new__(cls, req, params):
