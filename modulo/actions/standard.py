@@ -301,7 +301,7 @@ class WerkzeugCanonicalizer(Action):
             c_endpoint, c_args = map_adapter.match(url, method)
             return map_adapter.build(c_endpoint, c_args, method)
         canonicalize = func_update(werkzeug_canonicalize, canonicalize)
-        return {'canonicalize': canonicalize, 'canonicaluri': canonicalize(self.req.path)} # TODO: switch name back to canonical_uri when we get a better namespace system
+        return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
 
 class NoopCanonicalizer(Action):
     '''Sets the canonical URL based on the actual URL.'''
@@ -309,7 +309,7 @@ class NoopCanonicalizer(Action):
         def noop_canonicalize(url, method='GET'):
             return url
         canonicalize = func_update(noop_canonicalize, canonicalize)
-        return {'canonicalize': canonicalize, 'canonicaluri': canonicalize(self.req.path)} # TODO: switch name back to canonical_uri when we get a better namespace system
+        return {'canonicalize': canonicalize, 'canonical_uri': canonicalize(self.req.path)}
 
 class Redirect(Action):
     PERMANENT = 301
