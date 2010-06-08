@@ -62,7 +62,7 @@ def all_of(*cls):
     # with our list of handler classes.
     return ActionMetaclass('AllActions_%s' % hash_iterable(handler_classes), (AllActions,), {'handler_classes': handler_classes})
 
-def any_of(*cls):
+def any_of(*cls, **kwargs):
     '''Creates an Action subclass that passes requests to one of the given classes.
 
     The returned subclass is called AnyAction_<hash value>, where <hash value> is
@@ -82,10 +82,10 @@ def any_of(*cls):
         if not issubclass(n, Action):
             return NotImplemented
         if issubclass(n, AnyAction):
-            handler_classes.extend(n.handler_classes)
+            handler_classes.extend([0,hc] for hc in n.handler_classes)
         else:
-            handler_classes.append(n)
-    return type('AnyAction_%s' % hash_iterable(handler_classes), (AnyAction,), {'handler_classes': handler_classes})
+            handler_classes.append([0,n])
+    return type('AnyAction_%s' % hash_iterable(handler_classes), (AnyAction,), {'handler_classes': handler_classes, '_count': 8, '_sortable': kwargs.get('sortable', False)})
 
 def opt(cls):
     '''Creates an Action subclass that wraps a given handler class to make it optional.
@@ -413,12 +413,19 @@ class AllActions(Action):
 
 class AnyAction(Action):
     def __new__(cls, req, params):
-        for hc in cls.handler_classes:
-            h = hc.handle(req, params)
+        for hc in cls.handler_classes[:]:
+            h = hc[1].handle(req, params)
             if h is None:
-                logging.getLogger('modulo.actions').debug(reject_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(reject_fmt % (hc[1], req))
             else:
-                logging.getLogger('modulo.actions').debug(accept_fmt % (hc, req))
+                logging.getLogger('modulo.actions').debug(accept_fmt % (hc[1], req))
+                hc[0] += 1
+                if cls._sortable:
+                    cls._count -= 1
+                    if cls._count <= 0:
+                        logging.getLogger('modulo.actions').debug(str(cls) + ' sorting actions: ' + ','.join(str(h[0]) for h in cls.handler_classes))
+                        cls.handler_classes.sort(key=lambda h: h[0], reverse=True)
+                        cls._count = sum(h[0] for h in cls.handler_classes)
                 return h
         return None
         # Note that we never call super(...).__new__(...) here. So there is no
