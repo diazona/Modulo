@@ -318,11 +318,13 @@ class Redirect(Action):
     USE_PROXY = 305
     TEMPORARY = 307
 
+    namespace='*'
+
     @classmethod
-    def derive(cls, location, status_code=303):
+    def derive(cls, location, status_code=303, **kwargs):
         if status_code not in (301, 302, 303, 305, 307):
             raise ValueError('status_code must be one of 301, 302, 303, 305, or 307 (got %d)' % status_code)
-        return super(Redirect, cls).derive(status_code=status_code, location=location)
+        return super(Redirect, cls).derive(status_code=status_code, location=location, **kwargs)
 
     def generate(self, rsp, **kwargs):
         warnings.warn('Python code functionality in string templates will be removed for security', FutureWarning)
