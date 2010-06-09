@@ -29,6 +29,7 @@ class BaseComment(Entity):
     text = Field(UnicodeText)
 
     comments = OneToMany('Comment')
+    user = ManyToOne('User')
 
 class Post(BaseComment):
     slug = Field(Unicode(128))
@@ -36,7 +37,6 @@ class Post(BaseComment):
     summary = Field(UnicodeText)
 
     tags = ManyToMany('Tag')
-    user = ManyToOne('User')
 
 class EditablePost(Post):
     edit_date = Field(DateTime)
