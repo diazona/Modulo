@@ -227,15 +227,20 @@ class Action(object):
             self.req = req.__class__(environ)
         else:
             self.req = req
-        self.params = params
         if self.__class__.parameters.im_func is not Action.parameters.im_func:
             p = self.parameters()
             if p is not None:
                 assert isinstance(p, dict)
-                try:
-                    self.params[self.namespace].update(p)
-                except AttributeError:
-                    self.params[''].update(p)
+                ns = getattr(self, 'namespace', '')
+                assert ns != '*', 'Need to implement namespace \'*\''
+                ns_params = params[ns].copy()
+                self.params = params.copy()
+                self.params[ns] = ns_params
+                ns_params.update(p)
+            else:
+                self.params = params
+        else:
+            self.params = params
 
     def transform(self, environ):
         '''An opportunity for this Action to transform the request. If this method is
@@ -359,6 +364,7 @@ class AllActions(Action):
             instance = super(AllActions, cls).__new__(cls, req, params)
             for h in handlers:
                 h.req = req
+                h.params = params
             instance.req = req
             instance.params = params
             instance.handlers = handlers

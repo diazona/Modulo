@@ -164,18 +164,17 @@ class WerkzeugMapFilter(Action):
             if not isinstance(endpoint, ClassType) or not issubclass(endpoint, Action):
                 endpoint = cls.action_map[endpoint]
             ns = getattr(cls, 'namespace', '') # namespace='*' is not implemented here
-            ns_params = params[ns].copy()
-            params = params.copy()
-            params[ns] = ns_params
             if arguments:
+                ns_params = params[ns].copy()
+                params = params.copy()
+                params[ns] = ns_params
                 ns_params.update(arguments)
+            else:
+                ns_params = params[ns]
             h = endpoint.handle(req, params)
             if h is None:
                 return None
             params[ns]['map_adapter'] = map_adapter
-            hp = h.parameters()
-            if hp:
-                params[ns].update()
             h.params = params
             return h
 
