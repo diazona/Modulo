@@ -18,7 +18,11 @@ class ValueSelector(Action):
     def derive(cls, field, **kwargs):
         return super(ValueSelector, cls).derive(field=field, **kwargs)
     def generate(self, rsp, query, model, **kwargs):
-        return {'query': query.filter(getattr(model, self.field)==kwargs[self.field])}
+        try:
+            value = kwargs[self.field]
+        except KeyError:
+            value = getattr(self, self.field)
+        return {'query': query.filter(getattr(model, self.field)==value)}
 class RangeSelector(Action):
     @classmethod
     def derive(cls, field, **kwargs):
