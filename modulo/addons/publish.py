@@ -67,6 +67,13 @@ class TransactionID(Action):
 # Posts
 #---------------------------------------------------------------------------
 
+class PostTagSplitter(Action):
+    '''Used when tags are submitted as a comma-separated list'''
+    delimiter = ','
+    
+    def generate(self, rsp, tags):
+        return {'tags': tags.split(self.delimiter)}
+
 class PostSubmitAggregator(Action):
     def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None):
         post = Post()
@@ -102,13 +109,13 @@ class PostCommit(Action):
 #---------------------------------------------------------------------------
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, comment_text_src, post_id, user=None, comment_subject=None):
+    def generate(self, rsp, text_src, post_id, user=None, subject=None):
         comment = Comment()
-        comment.text_src = comment.text = comment_text_src
+        comment.text_src = comment.text = text_src
         if comment.text_src:
-            comment.subject = comment_subject
+            comment.subject = subject
             comment.date = datetime.datetime.now()
-            comment.post = Post.query.filter(Post.id==post_id).one()
+            comment.parent = Post.query.filter(Post.id==post_id).one()
             comment.user = user
             return compact('comment')
         else:
