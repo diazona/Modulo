@@ -23,6 +23,16 @@ class ValueSelector(Action):
         except KeyError:
             value = getattr(self, self.field)
         return {'query': query.filter(getattr(model, self.field)==value)}
+class MemberSelector(Action):
+    @classmethod
+    def derive(cls, field, association, **kwargs):
+        return super(MemberSelector, cls).derive(field=field, association=association, **kwargs)
+    def generate(self, rsp, query, model, **kwargs):
+        try:
+            value = kwargs[self.field]
+        except KeyError:
+            value = getattr(self, self.field)
+        return {'query': query.filter(getattr(model, self.association).any(getattr(model, self.field)==value))}
 class RangeSelector(Action):
     @classmethod
     def derive(cls, field, **kwargs):
