@@ -20,6 +20,8 @@ from werkzeug.exceptions import BadRequest, NotFound
 # Database models
 #---------------------------------------------------------------------------
 class Report(Post):
+    using_options(inheritance='multi')
+
     status = Field(Enum('NEW', 'IN PROGRESS', 'RESOLVED'))
     resolution = Field(Enum('', 'FIXED', 'DECLINED', 'DUPLICATE'))
 
