@@ -81,19 +81,32 @@ class PostTagSplitter(Action):
         return {'tags': tags.split(self.delimiter)}
 
 class PostSubmitAggregator(Action):
-    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None):
-        post = Post()
+    editable = False
+    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, id=None):
+        if self.editable:
+            if id:
+                try:
+                    post = EditablePost.query.filter(EditablePost.id==id).one()
+                except NoResultFound:
+                    post = EditablePost()
+            else:
+                post = EditablePost()
+        else:
+            post = Post()
         post.title = title
-        post.text = post.text_src = text_src
-        if post.title and post.text_src:
+        post.text = text_src
+        if post.title and post.text:
             post.date = datetime.datetime.now()
             if tags == u'':
                 tags = list()
             post.tags = tags
-            post.draft = bool(draft)
             post.category = category
-            post.markup_mode = markup_mode
-            post.summary = post.summary_src = summary_src
+            post.summary = summary_src
+            if self.editable:
+                post.draft = bool(draft)
+                post.markup_mode = markup_mode
+                post.summary_src = summary_src
+                post.text_src = text_src
             post.user = user
         return compact('post')
 
