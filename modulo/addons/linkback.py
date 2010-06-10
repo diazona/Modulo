@@ -4,7 +4,7 @@
 
 import datetime
 import modulo.database
-from elixir import session, setup_all
+from elixir import session
 from elixir import Entity, Field, Unicode, UnicodeText
 from modulo.actions import Action, all_of, any_of
 from modulo.actions.standard import ContentTypeAction
@@ -23,8 +23,6 @@ class Linkback(Entity):
     remote_title = Field(Unicode(256))
     remote_excerpt = Field(UnicodeText)
     remote_name = Field(Unicode(256))
-
-setup_all()
 
 #---------------------------------------------------------------------------
 # Linkback handling

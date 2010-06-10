@@ -5,7 +5,7 @@
 import datetime
 import logging
 import modulo.database
-from elixir import session, setup_all
+from elixir import session, using_options
 from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
@@ -23,6 +23,8 @@ class Tag(Entity):
     name = Field(Unicode(128), primary_key=True)
 
 class BaseComment(Entity):
+    using_options(inheritance='multi')
+
     title = Field(Unicode(128))
     date = Field(DateTime)
     draft = Field(Boolean)
@@ -32,6 +34,8 @@ class BaseComment(Entity):
     user = ManyToOne('User')
 
 class Post(BaseComment):
+    using_options(inheritance='multi')
+    
     slug = Field(Unicode(128))
     category = Field(String(32))
     summary = Field(UnicodeText)
@@ -39,18 +43,20 @@ class Post(BaseComment):
     tags = ManyToMany('Tag')
 
 class EditablePost(Post):
+    using_options(inheritance='multi')
+
     edit_date = Field(DateTime)
     markup_mode = Field(String(32))
     summary_src = Field(UnicodeText)
     text_src = Field(UnicodeText)
 
 class Comment(BaseComment):
+    using_options(inheritance='multi')
+
     parent = ManyToOne('BaseComment')
     # TODO: go back to having a Commentable class or some equivalent, so that Comments
     # can be attached to generic Entities, not just those that inherit from BaseComment.
     # This will require some sort of polymorphism, possibly the AssociationProxy pattern.
-
-setup_all()
 
 #---------------------------------------------------------------------------
 # General stuff

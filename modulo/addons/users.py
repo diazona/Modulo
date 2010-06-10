@@ -3,7 +3,7 @@
 import datetime
 import logging
 import random
-from elixir import session, setup_all
+from elixir import session
 from elixir import DateTime, Entity, Field, LargeBinary, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from hashlib import sha256
 from hmac import HMAC
@@ -85,8 +85,6 @@ class VerificationRequest(Entity):
             return True
         else:
             return False
-
-setup_all()
 
 #---------------------------------------------------------------------------
 # General stuff

@@ -4,7 +4,7 @@
 import datetime
 import logging
 import modulo.database
-from elixir import session, setup_all
+from elixir import session, using_options
 from elixir import Boolean, DateTime, Entity, Enum, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
@@ -22,8 +22,6 @@ from werkzeug.exceptions import BadRequest, NotFound
 class Report(Post):
     status = Field(Enum('NEW', 'IN PROGRESS', 'RESOLVED'))
     resolution = Field(Enum('', 'FIXED', 'DECLINED', 'DUPLICATE'))
-
-setup_all()
 
 #---------------------------------------------------------------------------
 # General stuff

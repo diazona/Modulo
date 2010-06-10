@@ -12,6 +12,11 @@ from modulo import WSGIModuloApp
 from modulo import all_of, any_of
 from modulo.actions.standard import ContentTypeAction, DateAction, DirectoryResource, FileResource
 
+# If you are using database models, uncomment the next two lines. Make sure
+# you import any modules whose database models you are using ABOVE this line.
+#from elixir import setup_all
+#setup_all()
+
 # Here is where you build the tree of actions that constitute your
 # Modulo application. You can use the actions distributed with Modulo,
 # as well as any you write yourself.
