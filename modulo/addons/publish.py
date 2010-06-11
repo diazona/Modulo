@@ -20,7 +20,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 # Database models
 #---------------------------------------------------------------------------
 class Tag(Entity):
-    name = Field(Unicode(128), primary_key=True)
+    name = Field(Unicode(128), unique=True)
 
 class BaseComment(Entity):
     using_options(inheritance='multi')
@@ -72,13 +72,6 @@ class TransactionID(Action):
 #---------------------------------------------------------------------------
 # Posts
 #---------------------------------------------------------------------------
-
-class PostTagSplitter(Action):
-    '''Used when tags are submitted as a comma-separated list'''
-    delimiter = ','
-    
-    def generate(self, rsp, tags):
-        return {'tags': tags.split(self.delimiter)}
 
 class PostSubmitAggregator(Action):
     editable = False
@@ -153,12 +146,18 @@ class CommentCommit(Action):
 # Tags
 #---------------------------------------------------------------------------
 
-class TagIDSelector(Action):
-    def generate(self, rsp, query, id):
-        return {'query': query.filter(Taggable.tags.any(id==id))}
-class TagNameSelector(Action):
-    def generate(self, rsp, query, name):
-        return {'query': query.filter(Taggable.tags.any(name=name))}
+class TagSplitter(Action):
+    '''Used when tags are submitted as a comma-separated list'''
+    delimiter = ','
+    @staticmethod
+    def get_tag(t):
+        try:
+            return Tag.query.filter(Tag.name==t).one()
+        except NoResultFound:
+            return Tag(name=t)
+    def generate(self, rsp, tags):
+        if tags:
+            return {'tags': [self.get_tag(t) for t in tags.split(self.delimiter)]}
 
 class TagSubmit(Action):
     def generate(self, rsp, name):
