@@ -104,16 +104,16 @@ class MultiReportDisplay(Action):
         return compact('reports', 'rquery')
 
 class ReportSubmitAggregator(Action):
-    def generate(self, rsp, user, report_title, report_product, report_text, report_tags=list()):
+    def generate(self, rsp, user, title, category, text, tags=list()):
         report = Report()
-        report.title = report_title
-        report.text = report_text
+        report.title = title
+        report.text = text
         if report.title and report.text:
             report.date = datetime.datetime.now()
-            if report_tags == u'': # TODO: consider whether this sort of case should be handled in RequestDataAggregator
-                report_tags = list()
-            report.tags = report_tags
-            report.product = report_product
+            if tags == u'':
+                tags = list()
+            report.tags = tags
+            report.category = category
             report.status = 'NEW'
             report.user = user
         return compact('report')
