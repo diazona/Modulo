@@ -121,13 +121,14 @@ class PostCommit(Action):
 #---------------------------------------------------------------------------
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, text_src, post_id, user=None, subject=None):
+    def generate(self, rsp, text_src, parent_id=None, user=None, subject=None):
         comment = Comment()
         comment.text_src = comment.text = text_src
         if comment.text_src:
             comment.subject = subject
             comment.date = datetime.datetime.now()
-            comment.parent = Post.query.filter(Post.id==post_id).one()
+            if parent_id:
+                comment.parent = BaseComment.query.filter(BaseComment.id==parent_id).one()
             comment.user = user
             return compact('comment')
         else:
