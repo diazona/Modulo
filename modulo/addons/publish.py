@@ -50,6 +50,9 @@ class EditablePost(Post):
     summary_src = Field(UnicodeText)
     text_src = Field(UnicodeText)
 
+class Postlet(BaseComment):
+    pass
+
 class Comment(BaseComment):
     using_options(inheritance='multi')
 
@@ -121,14 +124,13 @@ class PostCommit(Action):
 #---------------------------------------------------------------------------
 
 class CommentSubmitAggregator(Action):
-    def generate(self, rsp, text_src, parent_id=None, user=None, subject=None):
+    def generate(self, rsp, text_src, parent_id, user=None, subject=None):
         comment = Comment()
         comment.text_src = comment.text = text_src
         if comment.text_src:
             comment.subject = subject
             comment.date = datetime.datetime.now()
-            if parent_id:
-                comment.parent = BaseComment.query.filter(BaseComment.id==parent_id).one()
+            comment.parent = BaseComment.query.filter(BaseComment.id==parent_id).one()
             comment.user = user
             return compact('comment')
         else:
@@ -139,6 +141,31 @@ class CommentMarkupParser(Action):
         comment.text = markup.process_markdown_safe(comment.text_src)
 
 class CommentCommit(Action):
+    def generate(self, rsp):
+        session.commit()
+        rsp.status_code = 201
+
+#---------------------------------------------------------------------------
+# Postlets
+#---------------------------------------------------------------------------
+
+class PostletSubmitAggregator(Action):
+    def generate(self, rsp, text_src, user=None, subject=None):
+        postlet = Postlet()
+        postlet.text_src = postlet.text = text_src
+        if postlet.text_src:
+            postlet.subject = subject
+            postlet.date = datetime.datetime.now()
+            postlet.user = user
+            return compact('postlet')
+        else:
+            postlet.delete()
+
+class PostletMarkupParser(Action):
+    def generate(self, rsp, postlet):
+        postlet.text = markup.process_markdown_safe(postlet.text_src)
+
+class PostletCommit(Action):
     def generate(self, rsp):
         session.commit()
         rsp.status_code = 201
