@@ -1,11 +1,11 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 '''Provides a rudimentary bug-tracking system.'''
 
 import datetime
 import logging
 import modulo.database
 from elixir import session, using_options
-from elixir import Boolean, DateTime, Entity, Enum, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
+from elixir import Field, Integer, ManyToOne, ManyToMany, OneToMany, String
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.publish import Post
@@ -22,8 +22,14 @@ from werkzeug.exceptions import BadRequest, NotFound
 class Report(Post):
     using_options(inheritance='multi')
 
-    status = Field(Enum('NEW', 'IN PROGRESS', 'RESOLVED'))
-    resolution = Field(Enum('', 'FIXED', 'DECLINED', 'DUPLICATE'))
+    status = Field(String(30))
+    resolution = Field(String(30))
+    version = Field(String(15))
+    platform = Field(String(15))
+    system = Field(String(15))
+    priority = Field(Integer)
+    severity = Field(Integer)
+    assignee = ManyToOne('User')
 
 #---------------------------------------------------------------------------
 # General stuff
