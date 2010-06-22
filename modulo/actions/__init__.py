@@ -30,8 +30,8 @@ from modulo.wrappers import Request
 from os.path import dirname, isfile, join, splitext
 from stat import ST_MTIME
 from werkzeug import validate_arguments
-from werkzeug import BaseRequest
-from werkzeug.exceptions import NotFound
+from werkzeug import ArgumentValidationError, BaseRequest
+from werkzeug.exceptions import InternalServerError, NotFound
 
 __all__ = ['all_of', 'any_of', 'opt', 'Action']
 
@@ -410,7 +410,11 @@ class AllActions(Action):
             else:
                 if namespace:
                     params.update(self.params[namespace])
-            hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
+            try:
+                hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
+            except ArgumentValidationError, e:
+                logging.getLogger('modulo.actions').exception('Missing arguments in handler %s: %s', h, tuple(e.missing))
+                raise InternalServerError
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             except NotFound:
