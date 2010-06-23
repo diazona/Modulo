@@ -23,7 +23,7 @@ def run_everything(tree, request):
     handler = tree.handle(request, defaultdict(dict)) # This is where the parameter list gets constructed
     if handler is None:
         raise NotFound()
-    logging.getLogger('modulo').debug('\n'+str(handler))
+    logging.getLogger('modulo.actions').debug('\n'+str(handler))
     response = Response()
     request.handler = handler
     handler.generate(response)
