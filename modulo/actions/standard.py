@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 '''Standard actions that are useful for the operation of a web server.'''
 
@@ -205,6 +205,18 @@ class ContentTypeAction(Action):
             rsp.mimetype = self.content_type
         if self.content_encoding:
             rsp.content_encoding = self.content_encoding
+
+class Expires(Action):
+    '''An Action which sets the Expires header.'''
+    @classmethod
+    def derive(cls, expires, **kwargs):
+        return super(Expires, cls).derive(expires=expires, **kwargs)
+    def generate(self, rsp):
+        if isinstance(self.expires, datetime):
+            rsp.expires = self.expires
+        else:
+            # assume it's a timedelta
+            rsp.expires = datetime.now() + self.expires
 
 class CacheControl(Action):
     '''An Action which checks whether it's appropriate to raise a NotModified exception.'''
