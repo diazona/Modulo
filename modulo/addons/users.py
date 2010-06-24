@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 import datetime
 import logging
@@ -12,7 +12,7 @@ from modulo.actions.standard import RequestDataAggregator
 from modulo.utilities import compact
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug import redirect
-from werkzeug.exceptions import InternalServerError, abort
+from werkzeug.exceptions import abort, Forbidden, InternalServerError, NotFound
 
 def salt():
     '''Produces a 64-bit salt value'''
@@ -145,7 +145,12 @@ class AuthenticationFailureRedirect(Action):
 class AuthenticationFailureForbidden(Action):
     def generate(self, rsp, user=None):
         if user is None:
-            abort(403)
+            raise Forbidden
+
+class AuthenticationFailureNotFound(Action):
+    def generate(self, rsp, user=None):
+        if user is None:
+            raise NotFound
 
 class LoginCookie(Action):
     persist_default = False
