@@ -4,9 +4,18 @@
 
 import logging
 import sys
+import time
 from collections import defaultdict
 from werkzeug import Local, LocalManager
 from werkzeug.exceptions import HTTPException, InternalServerError, NotFound, _ProxyException
+
+# fragment taken from timeit module
+if sys.platform == "win32":
+    # On Windows, the best timer is time.clock()
+    timer = time.clock
+else:
+    # On most other platforms the best timer is time.time()
+    timer = time.time
 
 local = Local()
 local_manager = LocalManager([local])
@@ -20,6 +29,7 @@ from modulo.actions import all_of, any_of, opt
 from modulo.wrappers import Request, Response
 
 def run_everything(tree, request):
+    t0 = timer()
     handler = tree.handle(request, defaultdict(dict)) # This is where the parameter list gets constructed
     if handler is None:
         raise NotFound()
@@ -27,6 +37,8 @@ def run_everything(tree, request):
     response = Response()
     request.handler = handler
     handler.generate(response)
+    t1 = timer()
+    logging.getLogger('modulo.timer').debug('processed in ' + str(t1 - t0) + ' seconds')
     return response
 
 def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
