@@ -82,7 +82,7 @@ def any_of(*cls, **kwargs):
         if not issubclass(n, Action):
             return NotImplemented
         if issubclass(n, AnyAction):
-            handler_classes.extend([0,hc] for hc in n.handler_classes)
+            handler_classes.extend(n.handler_classes)
         else:
             handler_classes.append([0,n])
     return type('AnyAction_%s' % hash_iterable(handler_classes), (AnyAction,), {'handler_classes': handler_classes, '_count': 8, '_sortable': kwargs.get('sortable', False)})
