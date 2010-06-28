@@ -356,8 +356,8 @@ class RequestDataAggregator(Action):
     keys = None
 
     @classmethod
-    def derive(cls, *args):
-        return super(RequestDataAggregator, cls).derive(keys=args)
+    def derive(cls, *args, **kwargs):
+        return super(RequestDataAggregator, cls).derive(keys=args, **kwargs)
 
     @classmethod
     def handles(cls, req, params):
