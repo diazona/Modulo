@@ -414,7 +414,7 @@ class AllActions(Action):
                 hargs, hkwargs = validate_arguments(h.generate, [h, rsp], params, True)
             except ArgumentValidationError, e:
                 logging.getLogger('modulo.actions').exception('Missing arguments in handler %s: %s', h, tuple(e.missing))
-                raise InternalServerError
+                raise
             try:
                 p = h.generate(rsp, *(hargs[2:]), **hkwargs)
             except NotFound:
