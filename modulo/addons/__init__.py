@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 from modulo.actions import Action
 from modulo.utilities import compact
@@ -117,3 +117,25 @@ class FetchAll(Action):
         if self.raise_not_found and len(records) == 0:
             raise NotFound
         return compact('records')
+
+class ValueMutator(Action):
+    @classmethod
+    def derive(cls, field, **kwargs):
+        return super(ValueMutator, cls).derive(field=field, **kwargs)
+    def generate(self, rsp, record, **kwargs):
+        try:
+            value = kwargs[self.field]
+        except KeyError:
+            value = getattr(self, self.field)
+        setattr(record, self.field, value)
+
+class MemberMutator(Action):
+    @classmethod
+    def derive(cls, field, **kwargs):
+        return super(MemberMutator, cls).derive(field=field, **kwargs)
+    def generate(self, rsp, record, **kwargs):
+        try:
+            value = kwargs[self.field]
+        except KeyError:
+            value = getattr(self, self.field)
+        getattr(record, self.field).append(value)
