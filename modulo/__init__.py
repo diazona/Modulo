@@ -53,7 +53,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
                 return _wsgi(e, environ, start_response)
-            except _ProxyException, e:
+            except (HTTPException, _ProxyException), e:
                 return _wsgi(e, environ, start_response)
         return simple_middleware
     elif error_tree is None:
@@ -63,7 +63,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
                 return _wsgi(e, environ, start_response)
-            except _ProxyException, e:
+            except (HTTPException, _ProxyException), e:
                 return _wsgi(e, environ, start_response)
             except Exception, e:
                 logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
@@ -76,7 +76,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
         def nice_exception_middleware(environ, start_response):
             try:
                 return modulo_application(environ, start_response)
-            except _ProxyException, e:
+            except (HTTPException, _ProxyException), e:
                 return _wsgi(e, environ, start_response)
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
@@ -84,7 +84,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
                 logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
             try:
                 return modulo_exception(environ, start_response)
-            except _ProxyException, e:
+            except (HTTPException, _ProxyException), e: #TODO: maybe HTTPExceptions from the error tree should be reraised as 500s
                 return _wsgi(e, environ, start_response)
             except NotFound, e:
                 logging.getLogger('modulo').error('Page not found in exception handler')
