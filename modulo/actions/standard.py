@@ -278,7 +278,7 @@ class ContentLengthAction(Action):
         super(ContentLengthAction, cls).derive(content_length=content_length, buffer=buffer)
 
     def generate(self, rsp):
-        if hasattr(self, content_length):
+        if hasattr(self, 'content_length'):
             rsp.content_length = self.content_length
         else:
             if self.buffer and (not hasattr(rsp, 'data') or not rsp.data):
