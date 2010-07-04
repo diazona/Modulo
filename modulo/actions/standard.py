@@ -281,7 +281,7 @@ class ContentLengthAction(Action):
         if hasattr(self, 'content_length'):
             rsp.content_length = self.content_length
         else:
-            if self.buffer and (not hasattr(rsp, 'data') or not rsp.data):
+            if getattr(self, 'buffer', False) and (not hasattr(rsp, 'data') or not rsp.data):
                 rsp.data = ''.join(s for s in rsp.response)
             rsp.content_length = len(rsp.data)
 
