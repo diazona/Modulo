@@ -258,26 +258,31 @@ class ContentLengthAction(Action):
     '''An Action to set the Content-Length header.
 
     By default, this just computes the length of the 'data' attribute of
-    the response, though you can override this by setting the content_length
-    attribute (of an instance or subclass) to a particular number.
+    the response if it exists. You can override this behavior by setting
+    the content_length attribute (of an instance or subclass) to a particular
+    number, in which case neither rsp.response nor rsp.data will be accessed.
+    
+    If the 'buffer' property is set to True, and if rsp.data is unset or of
+    zero length, the action will read the generator rsp.response and buffer
+    its contents into rsp.data, then set the content length from that.
 
-    If you don't set the content_length class property, this resource should *only*
-    be chained after a resource which sets rsp.data to the content to be sent
-    back to the client, otherwise the Content-Length header will be set to an
-    incorrect value, probably 0. If your method of delivery is to set
-    rsp.response to an iterator instead of setting rsp.data directly, this
-    resource will *not* read the elements of the iterator to figure out what
-    the length of the generated content is. Keep in mind that it's generally
-    better to send no Content-Length header than to send one with the wrong
-    value.'''
+    If you don't set the content_length class property, this action should *only*
+    be chained after an action which sets rsp.data to the content to be sent
+    back to the client, or after an action which sets rsp.response to something
+    that can be safely buffered (if you set buffer=True). If you use this action
+    before the content is determined, the Content-Length header will be set to an
+    incorrect value, probably 0. Keep in mind that it's generally better to send
+    no Content-Length header than to send one with the wrong value.'''
     @classmethod
-    def derive(cls, content_length):
-        super(ContentLengthAction, cls).derive(content_length=content_length)
+    def derive(cls, content_length, buffer=False):
+        super(ContentLengthAction, cls).derive(content_length=content_length, buffer=buffer)
 
     def generate(self, rsp):
         if hasattr(self, content_length):
             rsp.content_length = self.content_length
         else:
+            if self.buffer and (not hasattr(rsp, 'data') or not rsp.data):
+                rsp.data = ''.join(s for s in rsp.response)
             rsp.content_length = len(rsp.data)
 
 class ContentMD5Action(Action):
