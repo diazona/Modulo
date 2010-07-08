@@ -78,11 +78,17 @@ class wrap_dict(dict):
 # TODO: combine this with modulo.templating.clearsilver._hdfproxy
 class attribute_dict(dict):
     def __getattr__(self, name):
-        return self.__getitem__(name)
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError(name)
     def __setattr__(self, name, value):
         return self.__setitem__(name, value)
     def __delattr__(self, name):
-        return self.__delitem__(name)
+        try:
+            return self.__delitem__(name)
+        except KeyError:
+            raise AttributeError(name)
 
 def check_params(params):
     '''Returns a tuple(list, dict) based on input params.
