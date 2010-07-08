@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from modulo.actions import Action
 from modulo.utilities import compact
 from sqlalchemy import desc
