@@ -401,8 +401,11 @@ class GetDataAggregator(RequestDataAggregator):
 class Statics(Action):
     '''Injects a set of static parameters into the parameter list.'''
     @classmethod
-    def derive(cls, **kwargs):
-        return super(Statics, cls).derive(cparams=kwargs)
+    def derive(cls, namespace=None, **kwargs):
+        if namespace:
+            return super(Statics, cls).derive(namespace=namespace, cparams=kwargs)
+        else:
+            return super(Statics, cls).derive(cparams=kwargs)
     
     def parameters(self):
         return self.cparams
