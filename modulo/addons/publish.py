@@ -81,12 +81,15 @@ class TransactionID(Action):
 class PostSubmitAggregator(Action):
     editable = False
     def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, id=None):
+        editing = False
         if self.editable:
             if id:
                 try:
                     post = EditablePost.query.filter(EditablePost.id==id).one()
                 except NoResultFound:
                     post = EditablePost()
+                else:
+                    editing = True
             else:
                 post = EditablePost()
         else:
@@ -94,7 +97,10 @@ class PostSubmitAggregator(Action):
         post.title = title
         post.text = text_src
         if post.title and post.text:
-            post.date = datetime.datetime.now()
+            if editing and not draft:
+                post.edit_date = datetime.datetime.now()
+            else:
+                post.date = datetime.datetime.now()
             if tags == u'':
                 tags = list()
             post.tags = tags
