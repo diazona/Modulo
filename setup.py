@@ -5,7 +5,7 @@ from distutils.core import setup
 
 setup(
     name='Modulo',
-    version='0.1.0',
+    version='0.1.1',
     description='Python Web Development Framework',
     author='David Zaslavsky',
     author_email='diazona@ellipsix.net',
