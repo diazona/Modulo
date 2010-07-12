@@ -33,7 +33,7 @@ class MemberSelector(Action):
             value = kwargs[self.field]
         except KeyError:
             value = getattr(self, self.field)
-        return {'query': query.filter(getattr(model, self.association).any(getattr(model, self.field)==value))}
+        return {'query': query.filter(getattr(model, self.association).any(**{self.field: value}))}
 class RangeSelector(Action):
     @classmethod
     def derive(cls, field, **kwargs):
