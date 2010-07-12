@@ -4,7 +4,11 @@ import datetime
 import logging
 import random
 from elixir import session
-from elixir import DateTime, Entity, Field, LargeBinary, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
+from elixir import DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
+try:
+    from elixir import LargeBinary #SQLAlchemy 0.6
+except ImportError:
+    from elixir import Binary as LargeBinary # SQLAlchemy 0.5
 from hashlib import sha256
 from hmac import HMAC
 from modulo.actions import Action
