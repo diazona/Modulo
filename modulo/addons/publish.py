@@ -228,18 +228,24 @@ class LinkbackAutodiscoveryParser(HTMLParser):
                     try:
                         rconn.request('HEAD', remote.path)
                         response = rconn.getresponse()
-                        pingback_server = response.getheader('X-Pingback', None)
                         try:
-                            response.read() # read nothing... this line is problematic for some reason
-                        except ValueError:
-                            pass
+                            pingback_server = response.getheader('X-Pingback', None)
+                            try:
+                                response.read() # read nothing... this line is problematic for some reason
+                            except ValueError:
+                                pass
+                        finally:
+                            response.close()
                         if pingback_server:
                             # do pingback
                             ServerProxy(pingback_server).pingback.ping(self.sourceURI, targetURI)
                             return
                         rconn.request('GET', remote.path)
                         response = rconn.getresponse()
-                        content = response.read()
+                        try:
+                            content = response.read()
+                        finally:
+                            response.close()
                         pingback_match = re.search('<link rel="pingback" href="([^"]+)" ?/?>', content)
                         if pingback_match:
                             pingback_server = pingback_match.group(1)
@@ -262,9 +268,11 @@ class LinkbackAutodiscoveryParser(HTMLParser):
                             elif tb_remote.scheme == 'https':
                                 TBConnection = httplib.HTTPSConnection
                             uconn = TBConnection(tb_remote.hostname, tb_remote.port)
-                            uconn.request("POST", tb_remote.path, params, headers)
-                            xml_response = uconn.getresponse().read()
-                            uconn.close()
+                            try:
+                                uconn.request("POST", tb_remote.path, params, headers)
+                                xml_response = uconn.getresponse().read()
+                            finally:
+                                uconn.close()
                             # ignore errors for now, but we'll keep the parsing code here for the future
                             err_match = re.search('<error>(.*?)</error>', xml_response)
                             if err_match:
