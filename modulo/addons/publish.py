@@ -6,10 +6,16 @@ import datetime
 import httplib
 import logging
 import modulo.database
+import os, os.path
+import random
 import re
 import urlparse
 from elixir import session, using_options
 from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
+try:
+    from elixir import LargeBinary #SQLAlchemy 0.6
+except ImportError:
+    from elixir import Binary as LargeBinary # SQLAlchemy 0.5
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
@@ -17,6 +23,7 @@ from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
 from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug import secure_filename
 from werkzeug.exceptions import BadRequest, NotFound
 
 #---------------------------------------------------------------------------
@@ -44,6 +51,7 @@ class Post(BaseComment):
     summary = Field(UnicodeText)
 
     tags = ManyToMany('Tag')
+    attachments = ManyToMany('Attachment')
 
 class EditablePost(Post):
     using_options(inheritance='multi')
@@ -64,6 +72,10 @@ class Comment(BaseComment):
     # can be attached to generic Entities, not just those that inherit from BaseComment.
     # This will require some sort of polymorphism, possibly the AssociationProxy pattern.
 
+class Attachment(Entity):
+    mime_type = Field(String(44)) # the MIME type
+    filename = Field(String(124)) # the file on disk that holds the attachment's content
+
 #---------------------------------------------------------------------------
 # General stuff
 #---------------------------------------------------------------------------
@@ -81,7 +93,7 @@ class TransactionID(Action):
 
 class PostSubmitAggregator(Action):
     editable = False
-    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, id=None):
+    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, attachments=list(), id=None):
         editing = False
         if self.editable:
             if id:
@@ -113,6 +125,7 @@ class PostSubmitAggregator(Action):
                 post.summary_src = summary_src
                 post.text_src = text_src
             post.user = user
+            post.attachments = attachments
         return compact('post')
 
 class PostMarkupParser(Action):
@@ -297,3 +310,50 @@ class LinkbackAutodiscovery(Action):
     def generate(self, rsp, post):
         if not post.draft:
             LinkbackAutodiscoveryParser(post.title, self.blog_name).feed(post.text)
+
+#---------------------------------------------------------------------------
+# Attachments
+#---------------------------------------------------------------------------
+
+def gen_chars(n):
+    '''Produces a set of n random word characters'''
+    return "".join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_') for i in xrange(n))
+
+def make_file(suggested):
+    import settings
+    name = suggested and secure_filename(suggested) or gen_chars(16) # intentional non-use of ...if...else...
+    subdirs = os.listdir(settings.upload_dir)
+    random.shuffle(subdirs)
+    # potential for race conditions here, but they're unlikely... ignore for now
+    for subdir in subdirs:
+        path = os.path.join(settings.upload_dir, subdir, name)
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0644)
+        except OSError:
+            pass
+        else:
+            file_obj = os.fdopen(fd, 'w')
+            break
+    else: # omg it's actually useful here
+        subdir = gen_chars(4)
+        # Possible, but very unlikely, that this could fail
+        os.mkdir(os.path.join(settings.upload_dir, subdir))
+        path = os.path.join(settings.upload_dir, subdir, name)
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0644)
+        file_obj = os.fdopen(fd, 'w')
+    return file_obj, subdir, name, path
+
+class AttachmentSubmitAggregator(Action):
+    @classmethod
+    def handles(cls, req, params):
+        return len(req.files) > 0
+    def generate(self, rsp):
+        attachments = []
+        for name, upload in self.req.files.iteritems():
+            if upload.filename is None:
+                continue
+            file_obj, subdir, name, path = make_file(upload.filename)
+            with file_obj:
+                upload.save(file_obj)
+            attachments.append(Attachment(mime_type=upload.content_type, filename=path))
+        return compact('attachments')
