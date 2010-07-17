@@ -6,6 +6,7 @@ import datetime
 import httplib
 import logging
 import modulo.database
+import re
 import urlparse
 from elixir import session, using_options
 from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
