@@ -223,7 +223,8 @@ class LinkbackAutodiscoveryParser(HTMLParser):
                         Connection = httplib.HTTPConnection
                     elif remote.scheme == 'https':
                         Connection = httplib.HTTPSConnection
-                    # TODO: else:
+                    else:
+                        return
                     rconn = Connection(remote.hostname, remote.port)
                     try:
                         rconn.request('HEAD', remote.path)
