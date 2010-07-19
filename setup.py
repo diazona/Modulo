@@ -14,7 +14,7 @@ setup(
     package_data={'modulo.setup': ['*.html', '*.css', 'skeleton/*.tmpl']},
     scripts=['modulo-setup.py'],
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
