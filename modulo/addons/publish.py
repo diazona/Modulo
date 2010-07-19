@@ -89,7 +89,7 @@ class TransactionID(Action):
 
 class PostSubmitAggregator(Action):
     editable = False
-    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, uploads=list(), id=None):
+    def generate(self, rsp, user, title, text_src, tags=list(), draft=False, category=None, markup_mode=None, summary_src=None, id=None):
         editing = False
         if self.editable:
             if id:
@@ -121,7 +121,6 @@ class PostSubmitAggregator(Action):
                 post.summary_src = summary_src
                 post.text_src = text_src
             post.user = user
-            post.attachments = uploads
         return compact('post')
 
 class PostMarkupParser(Action):
@@ -131,6 +130,11 @@ class PostMarkupParser(Action):
             post.summary = markup.process_source(post.summary_src, post.markup_mode)
         else:
             post.summary = summarize.summarize(post.text)
+
+class PostAttachmentAssociator(Action):
+    '''Associates uploaded files with a post'''
+    def generate(self, rsp, post, uploads=list()):
+        post.attachments = uploads
 
 class PostCommit(Action):
     def generate(self, rsp):
