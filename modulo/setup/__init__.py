@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 # The setup code to create a new Modulo site...
 # kind of equivalent to Django's django-admin.py
@@ -48,6 +48,7 @@ setting_defaults = [
     'sendmail_path',
     'sendmail_user',
     'sendmail_pass',
+    'upload_dir',
     'debug'
 ]
 
