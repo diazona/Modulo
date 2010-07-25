@@ -8,7 +8,7 @@ from werkzeug import script
 from app import create_application
 
 action_runserver = script.make_runserver(create_application)
-action_shell = script.make_shell(create_application)
+action_shell = script.make_shell(lambda: {'application': create_application()})
 
 def action_syncdb():
     '''Syncs the database with the models defined in the application.'''
