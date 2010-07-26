@@ -106,7 +106,7 @@ class PostSubmitAggregator(Action):
         post.title = title
         post.text = text_src
         if post.title and post.text:
-            if editing and not draft:
+            if editing and not post.draft:
                 post.edit_date = datetime.datetime.now()
             else:
                 post.date = datetime.datetime.now()
