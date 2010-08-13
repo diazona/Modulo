@@ -375,7 +375,7 @@ class RequestDataAggregator(Action):
     def generate(self, rsp):
         d = self.get_dict(self.req)
         if self.keys:
-            return dict((k, list_or_value(d[k])) for k in self.keys if k in d)
+            return dict((k, list_or_value(d.getlist(k))) for k in self.keys if k in d)
         else:
             return dict((k, list_or_value(v)) for (k,v) in d.iterlists())
 
