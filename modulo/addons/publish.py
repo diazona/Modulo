@@ -22,6 +22,7 @@ from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
 from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
+from xmlrpclib import ServerProxy
 from werkzeug import secure_filename
 from werkzeug.exceptions import BadRequest, NotFound
 
