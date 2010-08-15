@@ -9,6 +9,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import NotFound
 
 class Query(Action):
+    '''Creates a query object for the given model (Entity).'''
     @classmethod
     def derive(cls, model, **kwargs):
         return super(Query, cls).derive(model=model, **kwargs)
@@ -16,6 +17,9 @@ class Query(Action):
         return {'query': self.model.query, 'model': self.model}
 
 class ValueSelector(Action):
+    '''Filters the query to results in which the given field has a particular value.
+    The value can be given as an attribute of the class (e.g. passed to derive) or
+    it can be taken from the parameter list during request processing.'''
     @classmethod
     def derive(cls, field, **kwargs):
         return super(ValueSelector, cls).derive(field=field, **kwargs)
@@ -26,6 +30,10 @@ class ValueSelector(Action):
             value = getattr(self, self.field)
         return {'query': query.filter(getattr(model, self.field)==value)}
 class MemberSelector(Action):
+    '''Filters the query to results in which a *-to-many association contains
+    an object in which the given field has a particular value. The value can be
+    given as an attribute of the class (e.g. passed to derive) or it can be taken
+    from the parameter list during request processing.'''
     @classmethod
     def derive(cls, field, association, **kwargs):
         return super(MemberSelector, cls).derive(field=field, association=association, **kwargs)
@@ -36,12 +44,17 @@ class MemberSelector(Action):
             value = getattr(self, self.field)
         return {'query': query.filter(getattr(model, self.association).any(**{self.field: value}))}
 class RangeSelector(Action):
+    '''Filters the query to results in which the given field has a value in a particular
+    range. The minimum and maximum values of the range will be taken from the parameter
+    list during request processing.'''
     @classmethod
     def derive(cls, field, **kwargs):
         return super(RangeSelector, cls).derive(field=field, **kwargs)
     def generate(self, rsp, query, model, range_min, range_max):
         return {'query': query.filter(range_min <= getattr(model, self.field) <= range_max)}
 class YearMonthDaySelector(Action):
+    '''Filters the query to results in which the given field has a date value with a particular
+    year, month, and/or day. The values will be taken from the parameter list during request processing.'''
     def generate(self, rsp, query, model, year, month=None, day=None):
         if month is None:
             date_min = datetime.datetime(year, 1, 1)
