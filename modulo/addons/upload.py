@@ -55,6 +55,13 @@ def make_file(suggested):
         file_obj = os.fdopen(fd, 'w')
     return file_obj, subdir, name, path
 
+# TODO: replace this with a more generic selector like ValueSelector, MemberSelector, etc.
+class UploadIDSelector(Action):
+    def generate(self, rsp, upload_id):
+        if not isinstance(upload_id, list):
+            upload_id = [upload_id]
+        return {'uploads': Upload.query.filter(Upload.id.in_(upload_id)).all()}
+
 class UploadSubmitAggregator(Action):
     '''Saves uploaded files'''
     # TODO: specify ability to handle only certain form fields
