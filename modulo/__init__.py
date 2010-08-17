@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 '''Basic components of Modulo.'''
 
@@ -38,7 +38,7 @@ def run_everything(tree, request):
     request.handler = handler
     handler.generate(response)
     t1 = timer()
-    logging.getLogger('modulo.timer').debug('processed in ' + str(t1 - t0) + ' seconds')
+    logging.getLogger('modulo.timer').info('processed in ' + str(t1 - t0) + ' seconds')
     return response
 
 def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
