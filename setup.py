@@ -3,13 +3,21 @@
 
 from distutils.core import setup
 
+long_description = None
+try:
+    with open('README.txt') as f:
+        long_description = f.read()
+except IOError:
+    pass
+
 setup(
     name='Modulo',
     version='0.1.2',
-    description='Python Web Development Framework',
+    description='A Python web framework which constructs websites from reusable code snippets.',
+    long_description=long_description,
     author='David Zaslavsky',
     author_email='diazona@ellipsix.net',
-    url='http://www.ellipsix.net/modulo/index.html',
+    url='http://www.ellipsix.net/devweb/modulo/index.html',
     packages=['modulo', 'modulo.actions', 'modulo.addons', 'modulo.setup', 'modulo.templating', 'modulo.utilities'],
     package_data={'modulo.setup': ['*.html', '*.css', 'skeleton/*.tmpl']},
     scripts=['modulo-setup.py'],
