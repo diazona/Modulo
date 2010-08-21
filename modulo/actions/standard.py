@@ -125,8 +125,8 @@ class DirectoryResource(Action):
         return os.path.join(docroot, req.path.lstrip('/'))
 
     @classmethod
-    def handles(cls, req, parmas):
-        return isdir(cls.dirname(req))
+    def handles(cls, req, params):
+        return isdir(cls.dirname(req, params))
 
     def __init__(self, req, params):
         super(DirectoryResource, self).__init__(req, params)
