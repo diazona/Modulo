@@ -12,7 +12,7 @@ except IOError:
 
 setup(
     name='Modulo',
-    version='0.1.2',
+    version='0.1.3',
     description='A Python web framework which constructs websites from reusable code snippets.',
     long_description=long_description,
     author='David Zaslavsky',
