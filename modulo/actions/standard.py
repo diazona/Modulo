@@ -366,7 +366,11 @@ class RequestDataAggregator(Action):
 
     @classmethod
     def handles(cls, req, params):
-        return len(cls.get_dict(req))
+        dct = cls.get_dict(req)
+        if hasattr(cls, keys):
+            return all(k in dct for k in keys)
+        else:
+            return bool(len(dct))
 
     @classmethod
     def get_dict(cls, req):
@@ -386,7 +390,7 @@ class PostDataAggregator(RequestDataAggregator):
     since the whole file contents will be loaded into memory.'''
     @classmethod
     def handles(cls, req, params):
-        return req.method == 'POST' and len(req.form)
+        return req.method == 'POST' and super(PostDataAggregator, cls).handles(req, params)
 
     @classmethod
     def get_dict(cls, req):
