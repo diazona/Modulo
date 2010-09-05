@@ -98,9 +98,9 @@ As an example, let's say we want to expand our server to provide directory listi
     from wsgiref import simple_server
 
     action_tree = DirectoryResource | all_of(
-    FileResource,
-    ContentLengthAction,
-    ContentTypeAction
+        FileResource,
+        ContentLengthAction,
+        ContentTypeAction
     )
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
@@ -113,12 +113,12 @@ As with ``&``, there is also a function that duplicates the behavior of the ``|`
     from wsgiref import simple_server
 
     action_tree = any_of(
-    DirectoryResource,
-    all_of(
-        FileResource,
-        ContentLengthAction,
-        ContentTypeAction
-    )
+        DirectoryResource,
+        all_of(
+            FileResource,
+            ContentLengthAction,
+            ContentTypeAction
+        )
     )
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
