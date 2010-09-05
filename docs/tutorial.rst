@@ -1,5 +1,6 @@
-Modulo tutorial
-===============
+********
+Tutorial
+********
 
 In a typical web application, there's a huge amount of code that goes into processing a single request for a web page, an image, or a stylesheet. But if you look at it, a lot of that code is pretty repetitive. Not only are different URLs processed with similar blocks of code, but even entirely different kinds of web applications share a lot of their code under the hood. Whether you're building a blog engine or a bug tracker, you wind up taking the same pieces and just putting them together in different ways.
 
@@ -50,10 +51,10 @@ First, let's look at the ``&`` operator, which combines two actions into a new a
 We can use this to add some capabilities to our web server. For example, we might want it to send back a ``Content-Length`` header that tells the browser how many bytes are in the file. Modulo has an action to do this, of course; it's called ``modulo.actions.standard.ContentLengthAction``. The new program is ::
 
     from modulo import WSGIModuloApplication
-    from modulo.actions.standard import FileResource<span class="change">, ContentLengthAction</span>
+    from modulo.actions.standard import FileResource, ContentLengthAction
     from wsgiref import simple_server
 
-    action_tree = FileResource <span class="change">&amp; ContentLengthAction</span>
+    action_tree = FileResource & ContentLengthAction
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
 
@@ -62,25 +63,25 @@ Edit your Python file to include this, then save it and run it. Now, in addition
 You can use the ``&`` operator multiple times to produce a chain of more than two actions. For instance, we might want to add another HTTP header that specifies the type of content that's in the file the server is sending. The action to do that is ``modulo.actions.standard.ContentTypeAction``, and it can be chained into the server like this::
 
     from modulo import WSGIModuloApplication
-    from modulo.actions.standard import FileResource, ContentLengthAction<span class="change">, ContentTypeAction</span>
+    from modulo.actions.standard import FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
 
-    action_tree = FileResource &amp; ContentLengthAction <span class="change">&amp; ContentTypeAction</span>
+    action_tree = FileResource & ContentLengthAction & ContentTypeAction
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
 
 As an alternative to the ``&`` Modulo offers the function ``modulo.actions.all_of``, which does the same thing, but can handle any number of actions at once. It can be more convenient than ``&`` when you have many actions to chain together, or when you're building a deeply nested action tree. The last code sample could be rewritten like this::
 
     from modulo import WSGIModuloApplication
-    <span class="change">from modulo.actions import all_of</span>
+    from modulo.actions import all_of
     from modulo.actions.standard import FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
 
-    action_tree = <span class="change">all_of(</span>
-        FileResource<span class="change">,</span>
-        ContentLengthAction<span class="change">,</span>
+    action_tree = all_of(
+        FileResource,
+        ContentLengthAction,
         ContentTypeAction
-    <span class="change">)</span> 
+    ) 
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
 
@@ -93,10 +94,10 @@ As an example, let's say we want to expand our server to provide directory listi
 
     from modulo import WSGIModuloApplication
     from modulo.actions import all_of
-    from modulo.actions.standard import <span class="change">DirectoryResource,</span> FileResource, ContentLengthAction, ContentTypeAction
+    from modulo.actions.standard import DirectoryResource, FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
 
-    action_tree = <span class="change">DirectoryResource |</span> all_of(
+    action_tree = DirectoryResource | all_of(
     FileResource,
     ContentLengthAction,
     ContentTypeAction
@@ -107,18 +108,18 @@ As an example, let's say we want to expand our server to provide directory listi
 As with ``&``, there is also a function that duplicates the behavior of the ``|`` operator: ``modulo.actions.any_of``. The last example could be rewritten as ::
 
     from modulo import WSGIModuloApplication
-    from modulo.actions import all_of<span class="change">, any_of</span>
+    from modulo.actions import all_of, any_of
     from modulo.actions.standard import DirectoryResource, FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
 
-    action_tree = <span class="change">any_of(</span>
-    DirectoryResource<span class="change">,</span>
+    action_tree = any_of(
+    DirectoryResource,
     all_of(
         FileResource,
         ContentLengthAction,
         ContentTypeAction
     )
-    <span class="change">)</span>
+    )
     application = WSGIModuloApplication(action_tree)
     simple_server(application).serve_forever()
 
