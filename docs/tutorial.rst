@@ -1,8 +1,6 @@
 Modulo tutorial
 ===============
 
-Modulo is a Python web framework that takes a whole new approach to creating dynamic websites.
-
 In a typical web application, there's a huge amount of code that goes into processing a single request for a web page, an image, or a stylesheet. But if you look at it, a lot of that code is pretty repetitive. Not only are different URLs processed with similar blocks of code, but even entirely different kinds of web applications share a lot of their code under the hood. Whether you're building a blog engine or a bug tracker, you wind up taking the same pieces and just putting them together in different ways.
 
 Modulo is designed to make that easy. It provides you with the pieces, and all you have to do is choose how they go together. You can create any kind of web application by just fitting different pieces together.
