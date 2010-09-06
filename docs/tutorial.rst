@@ -126,6 +126,8 @@ As with ``&``, there is also a function that duplicates the behavior of the ``|`
 Configuring Actions
 -------------------
 
+.. note:: This is a work in progress.
+
 Many actions can be configured with parameters. For example, ``FileResource`` takes a parameter called ``search_path`` which tells it which directory to look in to find the file. It takes the URL path of the requested file, appends it to that directory, and tries to return the resulting file. ::
 
     action_tree = FileResource(search_path='/var/www/localhost/htdocs')
