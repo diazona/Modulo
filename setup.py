@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from distutils.core import setup
+from sphinx.setup_command import BuildDoc
+import os.path
+
+# The distribution build script git-dist.sh depends on having
+# this exact line in place. Don't change it!
+version='0.1.3'
 
 long_description = None
 try:
@@ -12,7 +18,7 @@ except IOError:
 
 setup(
     name='Modulo',
-    version='0.1.3',
+    version=version,
     description='A Python web framework which constructs websites from reusable code snippets.',
     long_description=long_description,
     author='David Zaslavsky',
@@ -34,5 +40,14 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Internet :: WWW/HTTP :: WSGI',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ]
+    ],
+    cmdclass={'build_sphinx': BuildDoc},
+    command_options={
+        'build_sphinx': {
+            'version': ('setup.py', version),
+            'release': ('setup.py', version),
+            'build_dir': ('setup.py', os.path.abspath('build/share/docs')),
+            'config_dir': ('setup.py', os.path.abspath('docs'))
+        }
+    }
 )
