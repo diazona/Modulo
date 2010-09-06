@@ -25,6 +25,7 @@ Documentation for Modulo is under construction and will be posted and updated as
    :maxdepth: 2
 
    tutorial
+   api/index
 
 Indices and tables
 ==================
