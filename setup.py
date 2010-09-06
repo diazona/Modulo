@@ -1,13 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup
-from sphinx.setup_command import BuildDoc
 import os.path
 
-# The distribution build script git-dist.sh depends on having
-# this exact line in place. Don't change it!
+from distutils.core import setup
+
+cmdclass = {}
+command_options = {}
+
+# The distribution build script git-dist.sh depends on having this exact line
+# in the file. Don't change it! (Except to update the version number)
 version='0.1.3'
+
+try:
+    from sphinx.setup_command import BuildDoc
+except ImportError:
+    pass
+else:
+    cmdclass['build_sphinx'] = BuildDoc
+    command_options['build_sphinx'] = {
+        'version': ('setup.py', version),
+        'release': ('setup.py', version),
+        'build_dir': ('setup.py', os.path.abspath('build/share/docs')),
+        'config_dir': ('setup.py', os.path.abspath('docs'))
+    }
 
 long_description = None
 try:
@@ -41,13 +57,6 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: WSGI',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
-    cmdclass={'build_sphinx': BuildDoc},
-    command_options={
-        'build_sphinx': {
-            'version': ('setup.py', version),
-            'release': ('setup.py', version),
-            'build_dir': ('setup.py', os.path.abspath('build/share/docs')),
-            'config_dir': ('setup.py', os.path.abspath('docs'))
-        }
-    }
+    cmdclass=cmdclass,
+    command_options=command_options
 )
