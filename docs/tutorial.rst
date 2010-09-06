@@ -11,31 +11,31 @@ A Simple Example
 
 Let's look at a simple example. Since all websites have some static files, we'll start by making a static file server; all it does is read a requested file from the disk and send it out over the internet. It's a simple task, so fittingly, Modulo makes it very simple to accomplish. This is the entire program::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions.standard import FileResource
     from wsgiref import simple_server
 
     action_tree = FileResource
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
 Copy and paste that into your favorite text editor, save it, and run it. Congratulations, you've just written a web server!
 
 Let's go through this line by line. The first three lines just import the objects the program needs to run. ::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions.standard import FileResource
     from wsgiref import simple_server
 
-The main step in creating any Modulo application is constructing the *action tree*. In Modulo, each little piece of code is called an *action*. It's represented by a subclass of ``modulo.actions.Action``, and these classes can be built up into a tree that handles requests to your web app. Modulo has a built-in action that sets a file's content to be sent back as the response body, called ``FileResource``. ::
+The main step in creating any Modulo application is constructing the *action tree*. In Modulo, each little piece of code is called an *action*. It's represented by a subclass of :class:`modulo.actions.Action`, and these classes can be built up into a tree that handles requests to your web app. Modulo has a built-in action that sets a file's content to be sent back as the response body, called :class:`~modulo.actions.standard.FileResource`. ::
 
     action_tree = FileResource
 
 For a simple file server, that's all we need.
 
-Once we have the action tree, the next step is to turn it into a WSGI application. If you're not already familiar with WSGI, it's a standard that specifies how a Python web application interacts with the server that's running it. Modulo provides the class ``modulo.WSGIModuloApplication`` to create a WSGI application from an action tree. ::
+Once we have the action tree, the next step is to turn it into a WSGI application. If you're not already familiar with WSGI, it's a standard that specifies how a Python web application interacts with the server that's running it. Modulo provides the class :class:`modulo.WSGIModuloApp` to create a WSGI application from an action tree. ::
 
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
 
 Finally, we insert the Python code to run the WSGI application. In this example, I've used the WSGI reference server from the Python standard library, but you can use any WSGI-capable web server. ::
 
@@ -48,31 +48,31 @@ Obviously if your web apps are limited to one action, there's not a whole lot yo
 
 First, let's look at the ``&`` operator, which combines two actions into a new action that will run both of its constituent actions. In other words, writing ``Action1 & Action2`` gives you an action that uses ``Action1`` *and* ``Action2`` to handle the request.
 
-We can use this to add some capabilities to our web server. For example, we might want it to send back a ``Content-Length`` header that tells the browser how many bytes are in the file. Modulo has an action to do this, of course; it's called ``modulo.actions.standard.ContentLengthAction``. The new program is ::
+We can use this to add some capabilities to our web server. For example, we might want it to send back a ``Content-Length`` header that tells the browser how many bytes are in the file. Modulo has an action to do this, of course; it's called :class:`modulo.actions.standard.ContentLengthAction`. The new program is ::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions.standard import FileResource, ContentLengthAction
     from wsgiref import simple_server
 
     action_tree = FileResource & ContentLengthAction
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
 Edit your Python file to include this, then save it and run it. Now, in addition to serving up the file content, your server will include a header that tells the browser how many bytes are in the file.
 
-You can use the ``&`` operator multiple times to produce a chain of more than two actions. For instance, we might want to add another HTTP header that specifies the type of content that's in the file the server is sending. The action to do that is ``modulo.actions.standard.ContentTypeAction``, and it can be chained into the server like this::
+You can use the ``&`` operator multiple times to produce a chain of more than two actions. For instance, we might want to add another HTTP header that specifies the type of content that's in the file the server is sending. The action to do that is :class:`modulo.actions.standard.ContentTypeAction`, and it can be chained into the server like this::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions.standard import FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
 
     action_tree = FileResource & ContentLengthAction & ContentTypeAction
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
-As an alternative to the ``&`` Modulo offers the function ``modulo.actions.all_of``, which does the same thing, but can handle any number of actions at once. It can be more convenient than ``&`` when you have many actions to chain together, or when you're building a deeply nested action tree. The last code sample could be rewritten like this::
+As an alternative to the ``&`` Modulo offers the function :func:`modulo.actions.all_of`, which does the same thing, but can handle any number of actions at once. It can be more convenient than ``&`` when you have many actions to chain together, or when you're building a deeply nested action tree. The last code sample could be rewritten like this::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions import all_of
     from modulo.actions.standard import FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
@@ -82,7 +82,7 @@ As an alternative to the ``&`` Modulo offers the function ``modulo.actions.all_o
         ContentLengthAction,
         ContentTypeAction
     ) 
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
 Alternate Actions
@@ -90,9 +90,9 @@ Alternate Actions
 
 The other action combination operator that Modulo offers is the ``|`` operator, which combines two actions into a new action that will run *one* of its constituent actions. In other words, writing ``Action1 | Action2`` gives you a new action which will use *either* ``Action1`` *or* ``Action2``, but not both. It'll first try ``Action1``, and if that doesn't work for some reason, it'll try ``Action2`` before giving up.
 
-As an example, let's say we want to expand our server to provide directory listings. Modulo offers the action ``modulo.actions.standard.DirectoryResource`` to do this. Obviously, any given HTTP request could correspond to either a file or a directory, but not both. With the ``|`` operator, we can set up the server to first see if the request corresponds to a directory, and if not, fall back to handling it as a file. ::
+As an example, let's say we want to expand our server to provide directory listings. Modulo offers the action :class:`modulo.actions.standard.DirectoryResource` to do this. Obviously, any given HTTP request could correspond to either a file or a directory, but not both. With the ``|`` operator, we can set up the server to first see if the request corresponds to a directory, and if not, fall back to handling it as a file. ::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions import all_of
     from modulo.actions.standard import DirectoryResource, FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
@@ -102,12 +102,12 @@ As an example, let's say we want to expand our server to provide directory listi
         ContentLengthAction,
         ContentTypeAction
     )
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
-As with ``&``, there is also a function that duplicates the behavior of the ``|`` operator: ``modulo.actions.any_of``. The last example could be rewritten as ::
+As with ``&``, there is also a function that duplicates the behavior of the ``|`` operator: :func:`modulo.actions.any_of`. The last example could be rewritten as ::
 
-    from modulo import WSGIModuloApplication
+    from modulo import WSGIModuloApp
     from modulo.actions import all_of, any_of
     from modulo.actions.standard import DirectoryResource, FileResource, ContentLengthAction, ContentTypeAction
     from wsgiref import simple_server
@@ -120,7 +120,7 @@ As with ``&``, there is also a function that duplicates the behavior of the ``|`
             ContentTypeAction
         )
     )
-    application = WSGIModuloApplication(action_tree)
+    application = WSGIModuloApp(action_tree)
     simple_server(application).serve_forever()
 
 Configuring Actions
