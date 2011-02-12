@@ -367,8 +367,8 @@ class RequestDataAggregator(Action):
     @classmethod
     def handles(cls, req, params):
         dct = cls.get_dict(req)
-        if hasattr(cls, keys):
-            return all(k in dct for k in keys)
+        if hasattr(cls, 'keys'):
+            return all(k in dct for k in cls.keys)
         else:
             return bool(len(dct))
 
