@@ -16,11 +16,9 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.extend([
-  os.path.abspath('..'),   # root of the Modulo source tree
-  os.path.abspath('.')     # modulo.database needs a settings.py to import;
-])                         # a dummy one is provided in the current directory
-
+sys.path.insert(0, os.path.abspath('.'))  # modulo.database needs a settings.py to import;
+                                          # a dummy one is provided in the current directory
+sys.path.insert(1, os.path.abspath('..')) # root of the Modulo source tree
 
 # -- General configuration -----------------------------------------------------
 
