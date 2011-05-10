@@ -44,7 +44,9 @@ class User(Entity):
     permissions = ManyToMany('Permission')
 
     def check_password(self, password):
-        return str(self.password_hash) == hash_password(self.salt, password)
+        # I'm not sure if a simple hash_password(self.salt, password) == str(self.password_hash)
+        # would be susceptible to a timing attack, but this should not be
+        return reduce(lambda x,y: x and y, (c1 == c2 for c1,c2 in zip(hash_password(self.salt, password), str(self.password_hash))))
 
 class OpenID(Entity):
     openid = Field(String(256))
