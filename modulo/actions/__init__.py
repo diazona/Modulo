@@ -36,20 +36,23 @@ from werkzeug.exceptions import InternalServerError, NotFound
 __all__ = ['all_of', 'any_of', 'opt', 'Action']
 
 def all_of(*cls):
-    '''Creates an Action subclass that passes requests to all given classes.
+    '''Creates an ``Action`` subclass that passes requests to all given classes.
 
-    The returned subclass is called AllActions_<hash value>, where <hash value> is
-    a deterministic function of the arguments. It delegates calls to handles()
-    to its constituent classes (the parameters given in cls) such that it only
-    accepts the request (returns True) if *all* constituent classes individually
-    accept the request. When an instance of AllActions is created, it internally
-    also creates instances of all its constituent classes to which it will delegate
-    calls to update_mtime() and generate().
+    The returned subclass is a dynamically created subclass of :class:`AllActions`
+    called ``AllActions_<hash value>``, where ``<hash value>`` is a deterministic
+    function of the arguments provided to this function. The subclass delegates calls
+    to :meth:`~Action.handles` to its constituent classes (the parameters given in
+    ``cls``) such that the ``AllActions`` subclass only accepts the request if *all*
+    its constituent classes individually accept the request. When an instance of
+    ``AllActions_<hash value>`` is created in the second phase of processing, it
+    internally also creates instances of all its constituent classes to which it
+    will delegate calls to instance methods like :meth:`update_mtime` and
+    :meth:`generate`.
 
-    If one of the parameters to this method is itself a subclass of AllActions,
+    If one of the parameters to this method is itself a subclass of ``AllActions``,
     its list of constituent classes, rather than the parameter class itself, will
-    be copied into the new AllActions. This reduces the total number of instances
-    of AllActions necessary.'''
+    be copied into the new ``AllActions``. This reduces the total number of instances
+    of ``AllActions`` necessary.'''
     handler_classes = []
     for n in cls:
         if not issubclass(n, Action):
@@ -63,7 +66,7 @@ def all_of(*cls):
     return ActionMetaclass('AllActions_%s' % hash_iterable(handler_classes), (AllActions,), {'handler_classes': handler_classes})
 
 def any_of(*cls, **kwargs):
-    '''Creates an Action subclass that passes requests to one of the given classes.
+    '''Creates an ``Action`` subclass that passes requests to one of the given classes.
 
     The returned subclass is called AnyAction_<hash value>, where <hash value> is
     a deterministic function of the arguments. It delegates calls to handles() to
@@ -153,50 +156,58 @@ class Action(object):
     def derive(cls, **kwargs):
         '''Returns a subclass of this class with selected class variables set.
 
-        You can think of derive() as a constructor of sorts. Normally, of course,
+        You can think of ``derive()`` as a constructor of sorts. Normally, of course,
         a constructor takes a class and some values and creates an instance
         of the class based on those values. This method works similarly, except
         that instead of creating an instance, it creates a subclass. By default,
-        each keyword argument passed to derive() will be copied over to a 
+        each keyword argument passed to ``derive()`` will be copied over to a 
         corresponding class variable of that subclass. For example,
-        Action.derive(foo='bar') returns a subclass of Action with a class
-        variable 'foo' that has a default value of 'bar'. Another way
-        to get the same effect would be
+        ``Action.derive(foo='bar')`` returns a subclass of ``Action`` with a class
+        variable ``foo`` that has a default value of ``bar``. Another way
+        to get the same effect would be ::
         
             class RandomActionSubclass(Action):
                 foo = 'bar'
         
-        Some subclasses of Action override derive() to do something more
+        Some subclasses of Action override ``derive()`` to do something more
         complicated with the given values, but they generally wind up as
         class variables in some form.
         
-        The subclass returned by derive() will have a name of the form
-        <class name>_<hash value> where <class name> is the name of the base
-        class and <hash value> is some deterministic function of the keys and
+        The subclass returned by ``derive()`` will have a name of the form
+        ``<class name>_<hash value>``, where ``<class name>` is the name of the base
+        class, and ``<hash value>`` is some deterministic function of the keys and
         values passed in as keyword arguments. (The specific hash function used
         is purposely undocumented and may change; in practice it should probably
         never be necessary to know the hash generated.)
 
         If you write a subclass of Action that requires this sort of customization,
         and you don't have default values for the custom class variables, you can
-        override derive() as follows to specify which properties your class requires:
+        override ``derive()`` as follows to specify which properties your class
+        requires::
 
             def derive(cls, <property1>, <property2>, ..., **kwargs):
                 return super(<class>, cls).derive(<property1>=<property1>, <property2>=<property2>, ..., **kwargs)
 
-        Just replace property1, property2, etc. in all three spots with the name of
-        each property, and <class> with the name of the class. Make sure to leave the
-        **kwargs in at the end, because your class might be subclassed yet again and
+        Just replace ``property1``, ``property2``, etc. in all three spots with the name of
+        each property, and ``<class>`` with the name of the class. Make sure to leave the
+        ``**kwargs`` in at the end, because your class might be subclassed yet again and
         the subsubclass might want to have additional custom properties. It's boilerplate
-        code but there doesn't seem to be any way to reduce it further than this.
-        If you have sensible defaults for all your properties, you can just set those
-        defaults as class variables and then you don't have to override derive() at all.
+        code but I haven't found a way to reduce it further than this. If you have sensible
+        defaults for all your properties, you can just set those defaults as class variables
+        and then you don't have to override ``derive()`` at all.
         
-        In any case, you really should document which variables derive() accepts or requires
-        for your class, if any.'''
+        In any case, you really should document which variables ``derive()`` accepts or
+        requires for your class, if any.'''
         return type('%s_%s' % (cls.__name__, hash_iterable(kwargs)), (cls,), kwargs)
 
     def __new__(cls, req, params):
+        '''Creates an instance of an ``Action`` subclass ``cls``, if the class handles
+        the request.
+        
+        If the :meth:`~Action.handles` method of ``cls`` returns true when called
+        with ``req`` and ``params``, this method will act like a normal constructor and
+        return an instance of the class, customized to handle the given request. However,
+        if ``cls`` doesn't handle the request, this will return ``None``.'''
         if cls.handles(req, params):
             return super(Action, cls).__new__(cls, req, params)
         else:
@@ -219,7 +230,13 @@ class Action(object):
     def __init__(self, req, params):
         '''Initializes the handler.
         
-        Any modifications to the request should be done in transform(), not the constructor.'''
+        Generally if this is overridden in a subclass, it should only be used to
+        initialize the subclass's instance variables. ``req`` and ``params`` should
+        be considered effectively read-only, i.e. don't modify them in ``__init__()``
+        unless you know what you're doing.
+        
+        If you do need to make changes to the request, for example to alter the value
+        of some WSGI environment variable, do it in :meth:`transform`, not here.'''
         super(Action, self).__init__()
         if self.__class__.transform.im_func is not Action.transform.im_func:
             environ = req.environ.copy()
@@ -260,18 +277,41 @@ class Action(object):
         by this action. This is called in the first phase of processing, when it's still
         undetermined which actions exactly are going to be handling the request. So this
         method shouldn't do anything expensive and shouldn't have any side effects.
-        (Operations with side effects belong in generate().)
-        
-        A subclass's __new__ method can also set its parameters manually by assigning to
-        the instance variable self.params.'''
+        (Operations with side effects belong in :meth:`generate`.)
+
+        A subclass's ``__new__`` method can also set its parameters manually by assigning to
+        the instance variable ``self.params``.'''
         pass
 
     def authorized(self):
-        '''Return True if the current request is authorized to access this action, False if not'''
+        '''Return true if the user on the other end of the current request is authorized
+        to access this action, or false if not.
+        
+        This should be overridden if you're writing an action that represents some resource
+        which should have restricted access. Just implement this method to return true or
+        false depending on ``self.req`` and/or ``self.params``. Modulo calls the ``authorized()``
+        methods of all ``Action`` instances created for a given request, and if any of them
+        returns false, it denies access. This way, as long as this method is implemented
+        correctly, you can be sure that nobody will be able to access the resource
+        without having passed the proper identification checks.
+        
+        .. todo:: Make sure that ``authorized()`` does actually get called at the right time
+        
+        By default, this method returns ``True``.'''
         return True
 
     def last_modified(self):
-        '''Return the last modification time of the current action as a datetime object.'''
+        '''Return the last modification time of the resource as a ``datetime`` object.
+        This is mostly useful for things like files that have a modification time. You
+        could use it for database records as well.
+        
+        The modification time of the generated page will be set to the latest modification
+        time of any resource involved in creating it.
+        
+        By default, this method returns ``0``. This is a special case in which the return
+        value doesn't have to be a ``datetime`` object. The ``0`` will be interpreted to
+        mean that it doesn't make sense to define a modification time for whatever this
+        action represents.'''
         return 0
 
     def action_id(self):
