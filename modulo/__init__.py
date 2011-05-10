@@ -73,7 +73,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
 
     If ``raise_exceptions`` is false, you can pass in an alternate action as
     ``error_tree``, and it will be used as an error handler. If an uncaught exception
-    is raised during processing of ``action_tree`, the WSGI application will try using
+    is raised during processing of ``action_tree``, the WSGI application will try using
     ``error_tree`` to process the request before falling back to the default behavior
     (which is provided by Werkzeug). The intent is that you can use this to display
     debugging information.
