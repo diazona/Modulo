@@ -67,9 +67,9 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
     ``raise_exceptions=True``.
 
     .. todo:: Currently you can only do this by editing the source code to hard-code
-    the parameter ``raise_exceptions=True`` into the call to ``WSGIModuloApp``. Sometime
-    in the future there'll be a way to specify the value of ``raise_exceptions`` in the
-    local settings file.
+        the parameter ``raise_exceptions=True`` into the call to ``WSGIModuloApp``.
+        Sometime in the future there'll be a way to specify the value of
+        ``raise_exceptions`` in the local settings file.
 
     If ``raise_exceptions`` is false, you can pass in an alternate action as
     ``error_tree``, and it will be used as an error handler. If an uncaught exception
@@ -79,7 +79,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
     debugging information.
 
     .. todo:: There isn't actually any way to pass information about the error that
-    occurred to the ``error_tree`` yet.
+        occurred to the ``error_tree`` yet.
     '''
     @Request.application
     def modulo_application(request):
