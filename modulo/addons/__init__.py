@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+from elixir import session
 from modulo.actions import Action
 from modulo.utilities import compact
 from sqlalchemy import desc
@@ -154,3 +155,7 @@ class MemberMutator(Action):
         except KeyError:
             value = getattr(self, self.field)
         getattr(record, self.field).append(value)
+
+class FinalizeDBSession(Action):
+    def generate(self, rsp, **kwargs):
+        session.remove()
