@@ -17,7 +17,15 @@ class URIFilter(Action):
     '''A handler which only accepts requests that match a URI regular expression.
 
     This is primarily intended to be chained with other handlers to make them apply
-    only to a particular URI path, not for subclassing.'''
+    only to a particular URI path, not for subclassing. In other words, the typical
+    usage looks like ::
+    
+        all_of(
+            URIFilter('/test/path.html'),
+            other_action,
+            another_action
+        )
+    '''
     @classmethod
     def handles(cls, req, params):
         return bool(cls.__match(req.environ['PATH_INFO']))
@@ -130,8 +138,8 @@ class URISuffixConsumer(URISuffixFilter):
 class WerkzeugMapFilter(Action):
     '''A filter which acts like a Werkzeug routing map.
 
-    The class expects to see an instance of werkzeug.routing.Map in the class
-    variable routing_map (i.e. passed to the constructor). The Map instance can
+    The class expects to see an instance of ``werkzeug.routing.Map`` in the class
+    variable routing_map (i.e. passed to the constructor). The ``Map`` instance can
     have as its endpoints either Actions or strings (or a mixture of both). If
     any of the endpoints are strings, you need to provide an additional parameter,
     action_map, which is a dict mapping strings to Actions.
@@ -142,7 +150,8 @@ class WerkzeugMapFilter(Action):
     if the resource associated with the first rule doesn't handle the request, the
     WerkzeugMapFilter as a whole will reject the request. It won't backtrack and try
     the resources associated with the other matching rules. If this is a problem, use
-    AnyAction with URIFilters, something like
+    AnyAction with URIFilters, something like ::
+
         any_of(
             URIFilter('/') & SomeAction,
             URIFilter('/whatever') & OtherAction,

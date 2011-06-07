@@ -68,18 +68,21 @@ def all_of(*cls):
 def any_of(*cls, **kwargs):
     '''Creates an ``Action`` subclass that passes requests to one of the given classes.
 
-    The returned subclass is called AnyAction_<hash value>, where <hash value> is
-    a deterministic function of the arguments. It delegates calls to handles() to
-    its constituent classes (the parameters given in cls) such that it accepts the
-    request (returns True) if *any* of the constituent classes individually accept
-    the request. Instances of AnyAction are never actually created; when you
-    construct a AnyAction for a given request, what you actually get is an
-    instance of the first constituent class which has agreed to handle the request.
+    The returned subclass is a dynamically created subclass of :class:`AnyAction`
+    called ``AnyAction_<hash value>``, where ``<hash value>`` is a deterministic
+    function of the arguments provided to this function. It delegates calls to
+    :meth:`~Action.handles()` to its constituent classes (the parameters given
+    in ``cls``) such that it accepts the request if *any* of the constituent
+    classes individually accept the request.
+    
+    Instances of ``AnyAction`` are never actually created; when you construct
+    an ``AnyAction`` for a given request, what you actually get is an instance
+    of the first constituent class which has agreed to handle the request.
 
-    If one of the parameters to this method is itself a subclass of AnyAction,
+    If one of the parameters to this method is itself a subclass of ``AnyAction``,
     its list of constituent classes, rather than the parameter class itself, will
-    be copied into the new AnyAction. This reduces the total number of instances
-    of AnyAction necessary.'''
+    be copied into the new AnyAction. This means that, for efficiency, ``AnyAction``
+    will never be nested.'''
     handler_classes = []
     for n in cls:
         if not issubclass(n, Action):
