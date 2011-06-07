@@ -23,25 +23,25 @@ class CheetahCompiledTemplate(Action):
     namespace = '*'
     @classmethod
     def derive(cls, template, module=None, package=None, **kwargs):
-        '''Return an Action corresponding to the given compiled template. This method
-        requires one argument, 'template', which can be given as a keyword or positional
-        argument. It can be either the compiled subclass of Template, or the name of the
+        '''Return an :class:`Action` corresponding to the given compiled template. This method
+        requires one argument, ``template``, which can be given as a keyword or positional
+        argument. It can be either the compiled subclass of ``Template``, or the name of the
         class as a string. Basically you can either import the template class yourself
         and pass it in, or let this class do the importing for you.
         
-        If 'template' is a string, and the full qualified name of the module to import is
+        If ``template`` is a string, and the full qualified name of the module to import is
         the same string, then you're set. Otherwise, you need an additional argument, which
         could be given in various ways:
-        -Pass the imported module that contains the template class as 'module'
-        -Pass the full qualified name of the module that contains the template class as 'module',
-         and this method will import it
+        -Pass the imported module that contains the template class as ``module``
+        -Pass the full qualified name of the module that contains the template class as ``module``,
+        and this method will import it
         -If the unqualified name of the module is the same as the name of the class (which is
-         the way Cheetah templates are compiled), you can pass the package name, a string, in
-         the 'package' argument (and don't pass 'module'), and this class will import
-         'package'.'template' and then import the template class from that
+        the way Cheetah templates are compiled), you can pass the package name, a string, in
+        the ``package`` argument (and don't pass 'module'), and this class will import
+        ``package.template`` and then import the template class from that
         -If you somehow managed to create a template with a class name that isn't the same as
-         its module name, you can pass both 'package' and 'module' and this class will import
-         the 'template' class from 'package'.'module'
+        its module name, you can pass both ``package`` and ``module`` and this class will import
+        the ``template`` class from ``package.module``
         '''
         if isinstance(template, (str, unicode)):
             if isinstance(module, ModuleType):
