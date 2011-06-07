@@ -1,5 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 
+'''This module defines the request and response classes as subclasses of
+those from Werkzeug. Normally there is no need to use this module except
+perhaps to import ``Request`` and ``Response``.'''
+
 import logging
 from collections import defaultdict
 from logging import Logger, StreamHandler
@@ -24,6 +28,7 @@ class SessionMixin(object):
             return session_store.new()
 
 class ModuloRequest(WerkzeugRequest, LoggerMixin, SessionMixin):
+    '''A subclass of ``WerkzeugRequest`` that adds logging and session management.'''
     def __init__(self, environ):
         WerkzeugRequest.__init__(self, environ)
         LoggerMixin.__init__(self)
