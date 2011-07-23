@@ -10,7 +10,7 @@ command_options = {}
 
 # The distribution build script git-dist.sh depends on having this exact line
 # in the file. Don't change it! (Except to update the version number)
-version='0.1.3'
+version='0.1.4a'
 
 try:
     from sphinx.setup_command import BuildDoc
