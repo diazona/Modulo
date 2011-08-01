@@ -16,7 +16,10 @@ from os.path import isabs, isdir, isfile
 from stat import ST_MTIME
 from werkzeug import Template
 from werkzeug import wrap_file
-from werkzeug.utils import http_date
+try:
+    from werkzeug.http import http_date # Werkzeug 0.7
+except ImportError:
+    from werkzeug.utils import http_date # Werkzeug 0.6
 
 class FileResource(Action):
     '''A base class for an action that reads the contents of a file.
