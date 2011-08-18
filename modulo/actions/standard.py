@@ -70,7 +70,7 @@ class FileResource(Action):
             try:
                 for sp in search_path:
                     fnfull = cls.__filename(sp, fn, req)
-                    if os.path.isfile(fnfull):
+                    if cls.__accept(fnfull):
                         return fnfull
             except TypeError:
                 return cls.__filename(search_path, fn, req)
@@ -90,7 +90,9 @@ class FileResource(Action):
     def handles(cls, req, params):
         filename = cls.filename(req, params)
         logging.getLogger('modulo.actions.standard').debug('Checking file: ' + filename)
-        return isfile(filename)
+        return cls.__accept(filename)
+        
+    __accept = staticmethod(os.path.isfile)
 
     def __init__(self, req, params):
         super(FileResource, self).__init__(req, params)
@@ -102,7 +104,7 @@ class FileResource(Action):
     def generate(self, rsp):
         rsp.response = wrap_file(self.req.environ, open(self.filename))
 
-class DirectoryResource(Action):
+class DirectoryResource(FileResource):
     '''A base class for an action that returns a directory listing.
 
     As with FileResource, there are two things for subclasses to override.
@@ -116,34 +118,17 @@ class DirectoryResource(Action):
     structure, and provide a template (in your system of choice) to display the
     directory contents.'''
     @classmethod
-    def dirname(cls, req, params):
-        return cls.request_dirname(req)
+    def derive(cls, dirname=None, search_path=None, **kwargs):
+        return super(DirectoryResource, cls).derive(filename=dirname, search_path=search_path, **kwargs)
 
-    @staticmethod
-    def request_dirname(req):
-        if 'DOCUMENT_ROOT' in req.environ:
-            docroot = req.environ['DOCUMENT_ROOT']
-        else:
-            docroot = os.getcwd()
-        return os.path.join(docroot, req.path.lstrip('/'))
-
-    @classmethod
-    def handles(cls, req, params):
-        return isdir(cls.dirname(req, params))
-
-    def __init__(self, req, params):
-        super(DirectoryResource, self).__init__(req, params)
-        self.dirname = self.dirname(req, params) # slight optimization
-
-    def last_modified(self):
-        return datetime.utcfromtimestamp(os.stat(self.dirname)[ST_MTIME])
+    __accept = staticmethod(os.path.isdir)
 
     def generate(self, rsp):
-        contents = dircache.listdir(self.dirname)[:]
-        dircache.annotate(self.dirname, contents)
+        contents = dircache.listdir(self.filename)[:]
+        dircache.annotate(self.filename, contents)
         rsp.data = Template('<html><head><title>Listing of ${dirname}</title></head>'
                             '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li><a href="${d}">${d}</a></li><% endfor %></ul></body></html>'
-                            ).render(dirname=self.dirname, contents=contents)
+                            ).render(dirname=self.filename, contents=contents)
 
 class DirectoryIndex(Action):
     '''An action that alters the environment to insert a filename at the end of
