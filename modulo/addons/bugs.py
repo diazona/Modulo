@@ -12,7 +12,6 @@ from modulo.addons.publish import Post
 from modulo.addons.users import User
 from modulo.utilities import compact, markup, summarize, uri_path
 from sqlalchemy import desc
-from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import BadRequest, NotFound
 

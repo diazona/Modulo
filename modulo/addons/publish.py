@@ -20,7 +20,6 @@ from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
 from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
-from sqlalchemy.exceptions import SQLError
 from sqlalchemy.orm.exc import NoResultFound
 from xmlrpclib import ServerProxy
 from werkzeug import secure_filename

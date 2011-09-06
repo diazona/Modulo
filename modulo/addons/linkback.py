@@ -10,7 +10,13 @@ from modulo.actions import Action, all_of, any_of
 from modulo.actions.standard import ContentTypeAction
 from modulo.utilities import compact
 from HTMLParser import HTMLParser
-from sqlalchemy.exceptions import SQLError
+try:
+    from sqlalchemy.exceptions import SQLError # for SQLAlchemy < 0.7
+except ImportError:
+    class SQLError(Exception):
+        pass
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import FlushError
 from werkzeug.exceptions import BadRequest
 
 #---------------------------------------------------------------------------
@@ -138,11 +144,15 @@ class LinkbackCommit(Action):
             return
         try:
             session.commit()
-        except SQLError, e:
+        except SQLError as e: # SQLAlchemy < 0.7
             if e.orig[0] == 1062:
                 return {'fault': Fault(48, 'Linkback already registered')}
             else:
                 return {'fault': Fault(0, 'Internal server error')}
+        except FlushError:
+            return {'fault': Fault(48, 'Linkback already registered')}
+        except SQLAlchemyError:
+            return {'fault': Fault(0, 'Internal server error')}
 
 class TrackbackResponse(Action):
     '''Prepares a response to a trackback request.'''
