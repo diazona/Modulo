@@ -3,17 +3,14 @@
 import datetime
 import logging
 import random
-from elixir import session
-from elixir import DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
-try:
-    from elixir import LargeBinary #SQLAlchemy 0.6
-except ImportError:
-    from elixir import Binary as LargeBinary # SQLAlchemy 0.5
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, Table, Unicode, UnicodeText
 from hashlib import sha256
 from hmac import HMAC
 from modulo.actions import Action
 from modulo.actions.standard import RequestDataAggregator
+from modulo.database import Entity
 from modulo.utilities import compact
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from werkzeug import redirect
 from werkzeug.exceptions import abort, Forbidden, InternalServerError, NotFound
@@ -31,17 +28,27 @@ def hash_password(salt, password):
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
-class User(Entity):
-    login = Field(Unicode(64))
-    salt = Field(LargeBinary(8))
-    password_hash = Field(LargeBinary(256))
-    email = Field(Unicode(1024))
-    status = Field(String(8))
-    name = Field(Unicode(64))
-    join_date = Field(DateTime)
+user_permissions__permission_user = Table(
+    'user_permissions__permission_user',
+    Entity.metadata,
+    Column('user_id', Integer, ForeignKey('user.id')),
+    Column('permission_id', Integer, ForeignKey('permission.id'))
+)
 
-    openids = OneToMany('OpenID')
-    permissions = ManyToMany('Permission')
+class User(Entity):
+    __tablename__ = 'user'
+    
+    id = Column(Integer, primary_key=True)
+    login = Column(Unicode(64))
+    salt = Column(LargeBinary(8))
+    password_hash = Column(LargeBinary(256))
+    email = Column(Unicode(1024))
+    status = Column(String(8))
+    name = Column(Unicode(64))
+    join_date = Column(DateTime)
+
+    openids = relationship('OpenID', back_populates='user')
+    permissions = relationship('Permission', secondary=user_permissions__permission_user, backref='user')
 
     def check_password(self, password):
         # I'm not sure if a simple hash_password(self.salt, password) == str(self.password_hash)
@@ -49,25 +56,34 @@ class User(Entity):
         return reduce(lambda x,y: x and y, (c1 == c2 for c1,c2 in zip(hash_password(self.salt, password), str(self.password_hash))))
 
 class OpenID(Entity):
-    openid = Field(String(256))
+    __tablename__ = 'openid'
+    
+    id = Column(Integer, primary_key=True)
+    openid = Column(String(256))
 
-    user = ManyToOne('User')
+    user = relationship('User', back_populates='openids')
 
 class Permission(Entity):
-    permission = Field(String(32))
+    __tablename__ = 'permission'
+    
+    id = Column(Integer, primary_key=True)
+    permission = Column(String(32))
 
-    user = ManyToMany('User')
+    user = relationship('User', secondary=user_permissions__permission_user, backref='permission')
 
 class VerificationRequest(Entity):
-    request_time = Field(DateTime)
-    new_login = Field(Unicode(64))
-    new_salt = Field(LargeBinary(8))
-    new_password_hash = Field(LargeBinary(256))
-    new_email = Field(Unicode(1024))
-    new_status = Field(String(8))
-    vcode = Field(String(64))
+    __tablename__ = 'verificationrequest'
+    
+    id = Column(Integer, primary_key=True)
+    request_time = Column(DateTime)
+    new_login = Column(Unicode(64))
+    new_salt = Column(LargeBinary(8))
+    new_password_hash = Column(LargeBinary(256))
+    new_email = Column(Unicode(1024))
+    new_status = Column(String(8))
+    vcode = Column(String(64))
 
-    user = ManyToOne('User')
+    user = relationship('User')
 
     def check_password(self, password):
         return str(self.password_hash) == hash_password(self.salt, password)

@@ -2,8 +2,8 @@
 
 import datetime
 import logging
-from elixir import session
 from modulo.actions import Action
+from modulo.database import Session
 from modulo.utilities import compact
 from sqlalchemy import desc
 from sqlalchemy.orm.exc import NoResultFound
@@ -158,4 +158,4 @@ class MemberMutator(Action):
 
 class FinalizeDBSession(Action):
     def generate(self, rsp, **kwargs):
-        session.remove()
+        Session.remove()

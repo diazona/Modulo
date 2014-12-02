@@ -9,18 +9,14 @@ import modulo.database
 import re
 import sys
 import urlparse
-from elixir import session, using_options
-from elixir import Boolean, DateTime, Entity, Field, ManyToOne, ManyToMany, OneToMany, String, Unicode, UnicodeText
-try:
-    from elixir import LargeBinary #SQLAlchemy 0.6
-except ImportError:
-    from elixir import Binary as LargeBinary # SQLAlchemy 0.5
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.users import User
+from modulo.database import Entity, Session
 from modulo.utilities import compact, markup, summarize, uri_path
 from HTMLParser import HTMLParser
-from sqlalchemy.exceptions import SQLError
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Table, Unicode, UnicodeText
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from xmlrpclib import ServerProxy
 from werkzeug import secure_filename
@@ -29,49 +25,88 @@ from werkzeug.exceptions import BadRequest, NotFound
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
+post_tags__tag = Table(
+    'post_tags__tag',
+    Entity.metadata,
+    Column('post_basecomment_id', Integer, ForeignKey('post.basecomment_id')),
+    Column('tag_id', Integer, ForeignKey('tag.id'))
+)
+
+post_attachments__upload = Table(
+    'post_attachments__upload',
+    Entity.metadata,
+    Column('post_basecomment_id', Integer, ForeignKey('post.basecomment_id')),
+    Column('upload_id', Integer, ForeignKey('upload.id'))
+)
+
 class Tag(Entity):
-    name = Field(Unicode(128), unique=True)
+    __tablename__ = 'tag'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(128), unique=True)
 
 class BaseComment(Entity):
-    using_options(inheritance='multi')
+    __tablename__ = 'basecomment'
 
-    title = Field(Unicode(128))
-    date = Field(DateTime)
-    draft = Field(Boolean)
-    text = Field(UnicodeText)
+    id = Column(Integer, primary_key=True)
+    title = Column(Unicode(128))
+    date = Column(DateTime)
+    draft = Column(Boolean)
+    text = Column(UnicodeText)
 
-    comments = OneToMany('Comment')
-    user = ManyToOne('User')
+    user = relationship('User')
+    
+    row_type = Column(String)
+    
+    __mapper_args__ = {
+        'polymorphic_identity': 'basecomment',
+        'polymorphic_on': row_type
+    }
 
 class Post(BaseComment):
-    using_options(inheritance='multi')
+    __tablename__ = 'post'
     
-    slug = Field(Unicode(128))
-    category = Field(String(32))
-    summary = Field(UnicodeText)
+    basecomment_id = Column(Integer, ForeignKey(BaseComment.id), primary_key=True)
+    slug = Column(Unicode(128))
+    category = Column(String(32))
+    summary = Column(UnicodeText)
 
-    tags = ManyToMany('Tag')
-    if 'modulo.addons.upload' in sys.modules:
-        attachments = ManyToMany('Upload')
+    tags = relationship('Tag', secondary=post_tags__tag, backref='post')
+    attachments = relationship('Upload', secondary=post_attachments__upload, backref='post')
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'post'
+    }
 
 class EditablePost(Post):
-    using_options(inheritance='multi')
+    __tablename__ = 'editablepost'
 
-    edit_date = Field(DateTime)
-    markup_mode = Field(String(32))
-    summary_src = Field(UnicodeText)
-    text_src = Field(UnicodeText)
+    post_basecomment_id = Column(Integer, ForeignKey(Post.basecomment_id), primary_key=True)
+    edit_date = Column(DateTime)
+    markup_mode = Column(String(32))
+    summary_src = Column(UnicodeText)
+    text_src = Column(UnicodeText)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'editablepost'
+    }
 
 class Postlet(BaseComment):
-    pass
+    __mapper_args__ = {
+        'polymorphic_identity': 'postlet'
+    }
 
 class Comment(BaseComment):
-    using_options(inheritance='multi')
+    __tablename__ = 'comment'
 
-    parent = ManyToOne('BaseComment')
+    basecomment_id = Column(Integer, ForeignKey(BaseComment.id), primary_key=True)
+    parent = relationship('BaseComment')
     # TODO: go back to having a Commentable class or some equivalent, so that Comments
     # can be attached to generic Entities, not just those that inherit from BaseComment.
     # This will require some sort of polymorphism, possibly the AssociationProxy pattern.
+    __mapper_args__ = {
+        'polymorphic_identity': 'comment'
+    }
 
 #---------------------------------------------------------------------------
 # General stuff
@@ -139,7 +174,7 @@ class PostAttachmentAssociator(Action):
 
 class PostCommit(Action):
     def generate(self, rsp):
-        session.commit()
+        Session.commit()
         rsp.status_code = 201
 
 #---------------------------------------------------------------------------

@@ -3,8 +3,10 @@
 import os, os.path
 import random
 import sys
-from elixir import Entity, Field, String, ManyToMany
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
 from modulo.actions import Action
+from modulo.database import Entity
 from modulo.utilities import compact
 from werkzeug import secure_filename
 
@@ -13,14 +15,14 @@ from werkzeug import secure_filename
 #---------------------------------------------------------------------------
 
 class Upload(Entity):
+    __tablename__ = 'upload'
+    
+    id = Column(Integer, primary_key=True)
     '''Stores metadata relating to an uploaded file.'''
-    mime_type = Field(String(44)) # the MIME type
-    group = Field(String(20)) # the group
-    filename = Field(String(128)) # the name by which the upload should be referenced
-    path = Field(String(256)) # the actual path to the disk file representing this upload
-
-if 'modulo.addons.publish' in sys.modules:
-    sys.modules['modulo.addons.publish'].Post.attachments = ManyToMany('Upload')
+    mime_type = Column(String(44)) # the MIME type
+    group = Column(String(20)) # the group
+    filename = Column(String(128)) # the name by which the upload should be referenced
+    path = Column(String(256)) # the actual path to the disk file representing this upload
 
 #---------------------------------------------------------------------------
 # Functions

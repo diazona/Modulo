@@ -4,15 +4,14 @@
 import datetime
 import logging
 import modulo.database
-from elixir import session, using_options
-from elixir import Field, Integer, ManyToOne, ManyToMany, OneToMany, String
 from modulo.actions import Action
 from modulo.actions.standard import ContentTypeAction
 from modulo.addons.publish import Post
 from modulo.addons.users import User
+from modulo.database import Session
 from modulo.utilities import compact, markup, summarize, uri_path
-from sqlalchemy import desc
-from sqlalchemy.exceptions import SQLError
+from sqlalchemy import desc, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.exceptions import BadRequest, NotFound
 
@@ -20,16 +19,19 @@ from werkzeug.exceptions import BadRequest, NotFound
 # Database models
 #---------------------------------------------------------------------------
 class Report(Post):
-    using_options(inheritance='multi')
+    __tablename__ = 'report'
+    __mapper_args__ = {'polymorphic_identity': 'report'}
 
-    status = Field(String(30))
-    resolution = Field(String(30))
-    version = Field(String(15))
-    platform = Field(String(15))
-    system = Field(String(15))
-    priority = Field(Integer)
-    severity = Field(Integer)
-    assignee = ManyToOne('User')
+    post_basecomment_id = Column(Integer, ForeignKey(Post.basecomment_id), primary_key=True)
+    status = Column(String(30))
+    resolution = Column(String(30))
+    version = Column(String(15))
+    platform = Column(String(15))
+    system = Column(String(15))
+    priority = Column(Integer)
+    severity = Column(Integer)
+
+    assignee = relationship('User')
 
 #---------------------------------------------------------------------------
 # General stuff
@@ -131,6 +133,6 @@ class ReportResolve(Action):
 
 class ReportCommit(Action):
     def generate(self, rsp):
-        session.commit()
+        Session.commit()
         rsp.status_code = 201
 

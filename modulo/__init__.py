@@ -15,7 +15,7 @@ import sys
 import time
 from collections import defaultdict
 from werkzeug import Local, LocalManager
-from werkzeug.exceptions import HTTPException, InternalServerError, NotFound, _ProxyException
+from werkzeug.exceptions import HTTPException, InternalServerError, NotFound
 
 # fragment taken from timeit module
 if sys.platform == "win32":
@@ -95,7 +95,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
                 return _wsgi(e, environ, start_response)
-            except (HTTPException, _ProxyException), e:
+            except (HTTPException), e:
                 return _wsgi(e, environ, start_response)
         return simple_middleware
     elif error_tree is None:
@@ -106,7 +106,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
                 return _wsgi(e, environ, start_response)
-            except (HTTPException, _ProxyException), e:
+            except (HTTPException), e:
                 return _wsgi(e, environ, start_response)
             except Exception, e:
                 logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
@@ -122,7 +122,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
             handle uncaught exceptions.'''
             try:
                 return modulo_application(environ, start_response)
-            except (HTTPException, _ProxyException), e:
+            except (HTTPException), e:
                 return _wsgi(e, environ, start_response)
             except NotFound, e:
                 logging.getLogger('modulo').debug('Page not found')
@@ -130,7 +130,7 @@ def WSGIModuloApp(action_tree, error_tree=None, raise_exceptions=False):
                 logging.getLogger('modulo').exception(e.__class__.__name__ + ': ' + e.message)
             try:
                 return modulo_exception(environ, start_response)
-            except (HTTPException, _ProxyException), e: #TODO: maybe HTTPExceptions from the error tree should be reraised as 500s
+            except (HTTPException), e: #TODO: maybe HTTPExceptions from the error tree should be reraised as 500s
                 return _wsgi(e, environ, start_response)
             except NotFound, e:
                 logging.getLogger('modulo').error('Page not found in exception handler')

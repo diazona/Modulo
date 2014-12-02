@@ -4,12 +4,18 @@
 database access. It doesn't have any classes or useful variables. It may be
 changed or moved in the future.'''
 
-from elixir import metadata
-from elixir.options import options_defaults
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 import settings
 
-metadata.bind = settings.database_url
 
-# MySQL has a 64-character table name length limit
-options_defaults['shortnames'] = True
+engine = create_engine(settings.database_url)
+session_factory = sessionmaker(bind=engine)
+Session = scoped_session(session_factory)
+
+# Replaces the old Elixir Entity; use the same name for convenience
+Entity = declarative_base(bind=engine)
+
+__all__ = ['Session', 'Entity']

@@ -14,7 +14,6 @@ import shutil
 import time
 import webbrowser
 import wsgiref.simple_server
-from elixir import setup_all
 from threading import Event, Thread
 from werkzeug.templates import Template
 

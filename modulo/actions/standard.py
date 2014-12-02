@@ -14,7 +14,7 @@ from modulo.actions import Action
 from modulo.utilities import func_update
 from os.path import isabs, isdir, isfile
 from stat import ST_MTIME
-from werkzeug import Template
+from string import Template
 from werkzeug import wrap_file
 try:
     from werkzeug.http import http_date # Werkzeug 0.7
@@ -126,9 +126,9 @@ class DirectoryResource(FileResource):
     def generate(self, rsp):
         contents = dircache.listdir(self.filename)[:]
         dircache.annotate(self.filename, contents)
-        rsp.data = Template('<html><head><title>Listing of ${dirname}</title></head>'
-                            '<body><h1>Listing of <tt>${dirname}</tt></h1><ul><% for d in contents %><li><a href="${d}">${d}</a></li><% endfor %></ul></body></html>'
-                            ).render(dirname=self.filename, contents=contents)
+        rsp.data = '<html><head><title>Listing of {dirname}</title></head><body><h1>Listing of <tt>{dirname}</tt></h1><ul>'.format(dirname=self.filename) \
+            + ''.join('<li><a href="{d}">{d}</a></li>'.format(d=d) for d in contents) \
+            + '</ul></body></html>'
 
 class DirectoryIndex(Action):
     '''An action that alters the environment to insert a filename at the end of
@@ -333,7 +333,7 @@ class Redirect(Action):
 
     def generate(self, rsp, **kwargs):
         warnings.warn('Python code functionality in string templates will be removed for security', FutureWarning)
-        rsp.location = Template(self.location).render(kwargs) # TODO: create a more secure miniature template system
+        rsp.location = Template(self.location).substitute(kwargs) # TODO: create a more secure miniature template system
         rsp.status_code = self.status_code
         
 def list_or_value(v):

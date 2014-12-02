@@ -4,25 +4,29 @@
 
 import datetime
 import modulo.database
-from elixir import session
-from elixir import Entity, Field, Unicode, UnicodeText
+from sqlalchemy.orm.scoping import scoped_session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import Column, Integer, Unicode, UnicodeText
 from modulo.actions import Action, all_of, any_of
 from modulo.actions.standard import ContentTypeAction
+from modulo.database import Entity
 from modulo.utilities import compact
 from HTMLParser import HTMLParser
-from sqlalchemy.exceptions import SQLError
 from werkzeug.exceptions import BadRequest
 
 #---------------------------------------------------------------------------
 # Database models
 #---------------------------------------------------------------------------
 class Linkback(Entity):
-    local_host = Field(Unicode(128))
-    local_uri = Field(Unicode(1024))
-    remote_url = Field(Unicode(1024))
-    remote_title = Field(Unicode(256))
-    remote_excerpt = Field(UnicodeText)
-    remote_name = Field(Unicode(256))
+    __tablename__ = 'linkback'
+
+    id = Column(Integer, primary_key=True)
+    local_host = Column(Unicode(128))
+    local_uri = Column(Unicode(1024))
+    remote_url = Column(Unicode(1024))
+    remote_title = Column(Unicode(256))
+    remote_excerpt = Column(UnicodeText)
+    remote_name = Column(Unicode(256))
 
 #---------------------------------------------------------------------------
 # Linkback handling
@@ -138,7 +142,7 @@ class LinkbackCommit(Action):
             return
         try:
             session.commit()
-        except SQLError, e:
+        except SQLAlchemyError, e:
             if e.orig[0] == 1062:
                 return {'fault': Fault(48, 'Linkback already registered')}
             else:

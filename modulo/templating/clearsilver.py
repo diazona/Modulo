@@ -6,7 +6,7 @@ import neo_cs
 import neo_util
 import re
 import time
-from elixir import Entity
+from modulo.database import Entity
 from modulo.actions import Action
 from modulo.actions.standard import FileResource
 from modulo.templating import EmptyTemplateError

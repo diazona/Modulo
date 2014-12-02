@@ -2,7 +2,7 @@
 
 from modulo.actions import Action
 from modulo.actions.standard import FileResource
-from werkzeug.templates import Template
+from string import Template
 
 class MiniTemplate(FileResource):
     namespace = '*'
