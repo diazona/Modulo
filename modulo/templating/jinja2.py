@@ -26,8 +26,8 @@ class JinjaTemplate(Action):
 class JinjaFilesystemTemplate(FileResource):
     namespace = '*'
     @classmethod
-    def derive(cls, search_path, **kwargs):
-        return super(JinjaFilesystemTemplate, cls).derive(env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path, **kwargs)
+    def derive(cls, filename, search_path=None, **kwargs):
+        return super(JinjaFilesystemTemplate, cls).derive(filename=filename, env=Environment(loader=FileSystemLoader(search_path)), search_path=search_path, **kwargs)
 
     def generate(self, rsp, **kwargs):
         # Because Jinja handles the search path internally, we have to strip it off here
