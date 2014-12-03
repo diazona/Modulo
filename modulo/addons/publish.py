@@ -53,10 +53,10 @@ class BaseComment(Entity):
     date = Column(DateTime)
     draft = Column(Boolean)
     text = Column(UnicodeText)
+    user_id = Column(Integer, ForeignKey('user.id'))
+    row_type = Column(String)
 
     user = relationship('User')
-    
-    row_type = Column(String)
     
     __mapper_args__ = {
         'polymorphic_identity': 'basecomment',
@@ -100,12 +100,16 @@ class Comment(BaseComment):
     __tablename__ = 'comment'
 
     basecomment_id = Column(Integer, ForeignKey(BaseComment.id), primary_key=True)
-    parent = relationship('BaseComment')
+    parent_id = Column(Integer, ForeignKey(BaseComment.id))
+
+    parent = relationship('BaseComment', foreign_keys=[parent_id])
     # TODO: go back to having a Commentable class or some equivalent, so that Comments
     # can be attached to generic Entities, not just those that inherit from BaseComment.
     # This will require some sort of polymorphism, possibly the AssociationProxy pattern.
     __mapper_args__ = {
-        'polymorphic_identity': 'comment'
+        'polymorphic_identity': 'comment',
+        # see http://stackoverflow.com/a/14901780/56541 to justify this next line
+        'inherit_condition': basecomment_id == BaseComment.id
     }
 
 #---------------------------------------------------------------------------

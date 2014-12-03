@@ -15,7 +15,8 @@ class Query(Action):
     def derive(cls, model, **kwargs):
         return super(Query, cls).derive(model=model, **kwargs)
     def generate(self, rsp):
-        return {'query': self.model.query, 'model': self.model}
+        session = Session()
+        return {'query': session.query(self.model), 'model': self.model}
 
 class ValueSelector(Action):
     '''Filters the query to results in which the given field has a particular value.

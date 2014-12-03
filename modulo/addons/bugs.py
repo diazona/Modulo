@@ -30,6 +30,7 @@ class Report(Post):
     system = Column(String(15))
     priority = Column(Integer)
     severity = Column(Integer)
+    assignee_id = Column(Integer, ForeignKey(User.id))
 
     assignee = relationship('User')
 

@@ -8,7 +8,7 @@ from hashlib import sha256
 from hmac import HMAC
 from modulo.actions import Action
 from modulo.actions.standard import RequestDataAggregator
-from modulo.database import Entity
+from modulo.database import Entity, Session
 from modulo.utilities import compact
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
@@ -48,7 +48,7 @@ class User(Entity):
     join_date = Column(DateTime)
 
     openids = relationship('OpenID', back_populates='user')
-    permissions = relationship('Permission', secondary=user_permissions__permission_user, backref='user')
+    permissions = relationship('Permission', secondary=user_permissions__permission_user)
 
     def check_password(self, password):
         # I'm not sure if a simple hash_password(self.salt, password) == str(self.password_hash)
@@ -60,6 +60,7 @@ class OpenID(Entity):
     
     id = Column(Integer, primary_key=True)
     openid = Column(String(256))
+    user_id = Column(Integer, ForeignKey(User.id))
 
     user = relationship('User', back_populates='openids')
 
@@ -69,7 +70,7 @@ class Permission(Entity):
     id = Column(Integer, primary_key=True)
     permission = Column(String(32))
 
-    user = relationship('User', secondary=user_permissions__permission_user, backref='permission')
+    user = relationship('User', secondary=user_permissions__permission_user)
 
 class VerificationRequest(Entity):
     __tablename__ = 'verificationrequest'
@@ -82,6 +83,7 @@ class VerificationRequest(Entity):
     new_email = Column(Unicode(1024))
     new_status = Column(String(8))
     vcode = Column(String(64))
+    user_id = Column(Integer, ForeignKey(User.id))
 
     user = relationship('User')
 
@@ -143,7 +145,7 @@ class Authentication(Action):
     def generate(self, rsp, user_login, user_password):
         if user_login and user_password:
             try:
-                u = User.query.filter_by(login=user_login).one()
+                u = Session().query(User).filter_by(login=user_login).one()
             except MultipleResultsFound:
                 # ahhhhh!
                 logging.getLogger('modulo.addons.users').error('multiple users with same login ' + user_login)
