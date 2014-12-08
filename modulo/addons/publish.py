@@ -134,7 +134,7 @@ class PostSubmitAggregator(Action):
         if self.editable:
             if id:
                 try:
-                    post = EditablePost.query.filter(EditablePost.id==id).one()
+                    post = Session().query(EditablePost).filter(EditablePost.id==id).one()
                 except NoResultFound:
                     post = EditablePost()
                 else:
@@ -192,7 +192,7 @@ class CommentSubmitAggregator(Action):
         if comment.text_src:
             comment.subject = subject
             comment.date = datetime.datetime.now()
-            comment.parent = BaseComment.query.filter(BaseComment.id==parent_id).one()
+            comment.parent = Session().query(BaseComment).filter(BaseComment.id==parent_id).one()
             comment.user = user
             return compact('comment')
         else:
@@ -242,7 +242,7 @@ class TagSplitter(Action):
     @staticmethod
     def get_tag(t):
         try:
-            return Tag.query.filter(Tag.name==t).one()
+            return Session().query(Tag).filter(Tag.name==t).one()
         except NoResultFound:
             return Tag(name=t)
     def generate(self, rsp, tags):

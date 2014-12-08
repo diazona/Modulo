@@ -53,7 +53,7 @@ class RangeSelector(Action):
     def derive(cls, field, **kwargs):
         return super(RangeSelector, cls).derive(field=field, **kwargs)
     def generate(self, rsp, query, model, range_min, range_max):
-        return {'query': query.filter(range_min <= getattr(model, self.field) <= range_max)}
+        return {'query': query.filter(range_min <= getattr(model, self.field), getattr(model, self.field) <= range_max)}
 class YearMonthDaySelector(Action):
     '''Filters the query to results in which the given field has a date value with a particular
     year, month, and/or day. The values will be taken from the parameter list during request processing.'''
@@ -70,7 +70,7 @@ class YearMonthDaySelector(Action):
         else:
             date_min = datetime.datetime(year, month, day)
             date_max = date_min + datetime.timedelta(days=1)
-        return {'query': query.filter(date_min <= model.date <= date_max)}
+        return {'query': query.filter(date_min <= model.date, model.date <= date_max)}
 
 class DateOrdering(Action):
     ascending = False # I figure False is a reasonable default

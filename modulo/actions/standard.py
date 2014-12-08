@@ -326,14 +326,16 @@ class Redirect(Action):
     namespace='*'
 
     @classmethod
-    def derive(cls, location, status_code=303, **kwargs):
+    def derive(cls, location, status_code=303, template_language='string.Template', **kwargs):
         if status_code not in (301, 302, 303, 305, 307):
             raise ValueError('status_code must be one of 301, 302, 303, 305, or 307 (got %d)' % status_code)
-        return super(Redirect, cls).derive(status_code=status_code, location=location, **kwargs)
+        return super(Redirect, cls).derive(status_code=status_code, location=location, template_language=template_language, **kwargs)
 
     def generate(self, rsp, **kwargs):
-        warnings.warn('Python code functionality in string templates will be removed for security', FutureWarning)
-        rsp.location = Template(self.location).substitute(kwargs) # TODO: create a more secure miniature template system
+        if self.template_language == 'string.Template':
+            rsp.location = Template(self.location).substitute(kwargs) # TODO: create a more secure miniature template system
+        else:
+            rsp.location = self.location.format(**kwargs)
         rsp.status_code = self.status_code
         
 def list_or_value(v):

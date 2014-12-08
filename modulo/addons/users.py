@@ -124,7 +124,7 @@ class CurrentUserCheck(Action):
         if uid is None:
             return
         try:
-            u = User.query.filter_by(id=uid).one()
+            u = Session().query(User).filter_by(id=uid).one()
         except NoResultFound:
             pass
         else:

@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import Column, Integer, Unicode, UnicodeText
 from modulo.actions import Action, all_of, any_of
 from modulo.actions.standard import ContentTypeAction
-from modulo.database import Entity
+from modulo.database import Entity, Session
 from modulo.utilities import compact
 from HTMLParser import HTMLParser
 from werkzeug.exceptions import BadRequest
@@ -193,4 +193,4 @@ class EnablePingback(Action):
 class LinkbackDisplay(Action):
     '''Selects all linkback requests submitted for the current page.'''
     def generate(self, rsp, canonical_uri):
-        return {'linkbacks': Linkback.query.filter(Linkback.local_uri==canonical_uri).all()}
+        return {'linkbacks': Session().query(Linkback).filter(Linkback.local_uri==canonical_uri).all()}
