@@ -6,7 +6,7 @@ import sys
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from modulo.actions import Action
-from modulo.database import Entity
+from modulo.database import Entity, Session
 from modulo.utilities import compact
 from werkzeug import secure_filename
 
@@ -62,7 +62,7 @@ class UploadIDSelector(Action):
     def generate(self, rsp, upload_id):
         if not isinstance(upload_id, list):
             upload_id = [upload_id]
-        return {'uploads': Upload.query.filter(Upload.id.in_(upload_id)).all()}
+        return {'uploads': Session().query(Upload).filter(Upload.id.in_(upload_id)).all()}
 
 class UploadSubmitAggregator(Action):
     '''Saves uploaded files'''
